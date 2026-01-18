@@ -27,12 +27,12 @@ def index(request):
 
 
 def app1(request):
-    """Application 1: LeetCode Trapping Rain Water Problem (Hard)."""
+    """Application 1: LeetCode Longest Palindromic Substring Problem (Medium)."""
     html = """
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Trapping Rain Water - LeetCode Hard Problem</title>
+            <title>Longest Palindromic Substring - LeetCode Medium Problem</title>
             <style>
                 body { font-family: Arial, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; }
                 .back-button { padding: 8px 15px; background: #666; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-bottom: 20px; }
@@ -45,133 +45,114 @@ def app1(request):
                 button:hover { background: #45a049; }
                 #result { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; }
                 .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
-                .visualization { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 5px; }
-                .bar-container { display: flex; align-items: flex-end; justify-content: center; height: 300px; gap: 5px; margin: 20px 0; }
-                .bar { background: #2196F3; width: 30px; border: 1px solid #1976D2; display: flex; flex-direction: column-reverse; }
-                .water { background: #00BCD4; }
-                .bar-label { text-align: center; margin-top: 5px; font-size: 12px; }
+                .palindrome { color: #FF6B6B; font-weight: bold; }
+                .string-display { font-family: monospace; font-size: 18px; padding: 15px; background: #f9f9f9; border-radius: 5px; margin: 15px 0; letter-spacing: 2px; }
             </style>
         </head>
         <body>
             <a href="../" class="back-button">← Back to Index</a>
-            <h1>LeetCode Problem: Trapping Rain Water (Hard)</h1>
+            <h1>LeetCode Problem: Longest Palindromic Substring (Medium)</h1>
             
             <div class="problem">
                 <h2>Problem Description</h2>
-                <p>Given <code>n</code> non-negative integers representing an elevation map where the width of each bar is 1, 
-                compute how much water it can trap after raining.</p>
+                <p>Given a string <code>s</code>, return <em>the longest palindromic substring</em> in <code>s</code>.</p>
+                <p>A <strong>palindrome</strong> is a string that reads the same backward as forward.</p>
                 <p><strong>Example:</strong></p>
-                <p>Given elevation map <code>[0,1,0,2,1,0,1,3,2,1,2,1]</code>, return <code>6</code> units of water.</p>
+                <p>Input: <code>s = "babad"</code><br>
+                Output: <code>"bab"</code> or <code>"aba"</code> (both are valid answers)</p>
             </div>
             
             <div class="example">
                 <strong>Example 1:</strong><br>
-                Input: height = [0,1,0,2,1,0,1,3,2,1,2,1]<br>
-                Output: 6<br>
-                Explanation: The above elevation map is represented by array [0,1,0,2,1,0,1,3,2,1,2,1]. 
-                In this case, 6 units of rain water (blue section) are being trapped.
+                Input: s = "babad"<br>
+                Output: "bab" or "aba"<br>
+                Explanation: Both "bab" and "aba" are palindromes of length 3.
             </div>
             
             <div class="example">
                 <strong>Example 2:</strong><br>
-                Input: height = [4,2,0,3,2,5]<br>
-                Output: 9
+                Input: s = "cbbd"<br>
+                Output: "bb"<br>
+                Explanation: The longest palindromic substring is "bb".
+            </div>
+            
+            <div class="example">
+                <strong>Example 3:</strong><br>
+                Input: s = "racecar"<br>
+                Output: "racecar"<br>
+                Explanation: The entire string is a palindrome.
             </div>
             
             <h2>Try it yourself:</h2>
             <div>
-                <label>Height array (comma-separated non-negative integers):</label><br>
-                <input type="text" id="heights" value="0,1,0,2,1,0,1,3,2,1,2,1" placeholder="0,1,0,2,1,0,1,3,2,1,2,1"><br>
-                <button onclick="solveTrappingRainWater()">Solve</button>
+                <label>Input string:</label><br>
+                <input type="text" id="inputString" value="babad" placeholder="Enter a string"><br>
+                <button onclick="solveLongestPalindrome()">Solve</button>
             </div>
             
             <div id="result"></div>
-            <div id="visualization" class="visualization" style="display:none;"></div>
             
             <script>
-                function solveTrappingRainWater() {
-                    const heightsStr = document.getElementById('heights').value;
+                function expandAroundCenter(s, left, right) {
+                    while (left >= 0 && right < s.length && s[left] === s[right]) {
+                        left--;
+                        right++;
+                    }
+                    return right - left - 1;
+                }
+                
+                function solveLongestPalindrome() {
+                    const s = document.getElementById('inputString').value;
                     
-                    // Parse array
-                    const height = heightsStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 0);
-                    
-                    if (height.length === 0) {
+                    if (!s || s.length === 0) {
                         document.getElementById('result').innerHTML = 
-                            '<strong>Error:</strong> Please enter valid non-negative integers.';
+                            '<strong>Error:</strong> Please enter a non-empty string.';
                         document.getElementById('result').style.display = 'block';
                         document.getElementById('result').className = 'success';
                         return;
                     }
                     
-                    // Algorithm: Two Pointer Approach (O(n) time, O(1) space)
-                    let left = 0, right = height.length - 1;
-                    let leftMax = 0, rightMax = 0;
-                    let water = 0;
+                    let start = 0;
+                    let maxLen = 1;
                     
-                    while (left < right) {
-                        if (height[left] < height[right]) {
-                            if (height[left] >= leftMax) {
-                                leftMax = height[left];
-                            } else {
-                                water += leftMax - height[left];
-                            }
-                            left++;
-                        } else {
-                            if (height[right] >= rightMax) {
-                                rightMax = height[right];
-                            } else {
-                                water += rightMax - height[right];
-                            }
-                            right--;
+                    // Algorithm: Expand Around Centers (O(n²) time, O(1) space)
+                    for (let i = 0; i < s.length; i++) {
+                        // Check for odd-length palindromes (center at i)
+                        const len1 = expandAroundCenter(s, i, i);
+                        // Check for even-length palindromes (center between i and i+1)
+                        const len2 = expandAroundCenter(s, i, i + 1);
+                        
+                        const len = Math.max(len1, len2);
+                        
+                        if (len > maxLen) {
+                            maxLen = len;
+                            start = i - Math.floor((len - 1) / 2);
                         }
                     }
                     
-                    // Create visualization
-                    let maxHeight = Math.max(...height);
-                    let visHTML = '<h3>Visualization:</h3><div class="bar-container">';
+                    const longestPalindrome = s.substring(start, start + maxLen);
                     
-                    for (let i = 0; i < height.length; i++) {
-                        const barHeight = height[i];
-                        const barPercent = (barHeight / maxHeight) * 100;
-                        
-                        // Calculate trapped water at this position (simplified for visualization)
-                        let waterHeight = 0;
-                        if (i > 0 && i < height.length - 1) {
-                            const leftMaxHeight = Math.max(...height.slice(0, i));
-                            const rightMaxHeight = Math.max(...height.slice(i + 1));
-                            const minWall = Math.min(leftMaxHeight, rightMaxHeight);
-                            if (minWall > barHeight) {
-                                waterHeight = minWall - barHeight;
-                            }
+                    // Create visual representation highlighting the palindrome
+                    let visualString = s.split('').map((char, idx) => {
+                        if (idx >= start && idx < start + maxLen) {
+                            return '<span class="palindrome">' + char + '</span>';
                         }
-                        
-                        const waterPercent = waterHeight > 0 ? (waterHeight / maxHeight) * 100 : 0;
-                        
-                        visHTML += '<div style="display: flex; flex-direction: column; align-items: center;">';
-                        visHTML += `<div class="bar" style="height: ${barPercent}%;">`;
-                        if (waterHeight > 0) {
-                            visHTML += `<div class="water" style="height: ${waterPercent}%;"></div>`;
-                        }
-                        visHTML += '</div>';
-                        visHTML += `<div class="bar-label">${barHeight}</div>`;
-                        visHTML += '</div>';
-                    }
-                    visHTML += '</div>';
+                        return char;
+                    }).join('');
                     
                     document.getElementById('result').innerHTML = 
-                        '<strong>Result:</strong> ' + water + ' units of trapped water<br>' +
-                        '<strong>Input:</strong> [' + height.join(', ') + ']<br>' +
-                        '<strong>Algorithm:</strong> Two-pointer approach (O(n) time, O(1) space)';
+                        '<strong>Result:</strong> "' + longestPalindrome + '"<br>' +
+                        '<strong>Length:</strong> ' + maxLen + '<br>' +
+                        '<strong>Input:</strong> "' + s + '"<br>' +
+                        '<div class="string-display">' + visualString + '</div>' +
+                        '<strong>Algorithm:</strong> Expand around centers (O(n²) time, O(1) space)';
                     document.getElementById('result').style.display = 'block';
                     document.getElementById('result').className = 'success';
-                    
-                    document.getElementById('visualization').innerHTML = visHTML;
-                    document.getElementById('visualization').style.display = 'block';
                 }
                 
                 // Auto-solve on load with default example
                 window.onload = function() {
-                    solveTrappingRainWater();
+                    solveLongestPalindrome();
                 };
             </script>
         </body>
