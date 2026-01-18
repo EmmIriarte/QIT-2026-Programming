@@ -228,10 +228,22 @@ def app2(request):
             <h1>Basic Quantum Gates Simulator</h1>
             
             <div class="gate-info">
+                <h2>How to Use the Quantum Gates Simulator</h2>
+                <ol>
+                    <li><strong>Select Initial State:</strong> Choose a starting quantum state from the dropdown (|00⟩, |01⟩, |10⟩, |11⟩, or |+⟩)</li>
+                    <li><strong>Click Reset:</strong> Initialize the simulator with your selected state</li>
+                    <li><strong>Apply Gates:</strong> Click on any quantum gate button to transform the current state</li>
+                    <li><strong>View Results:</strong> The table below shows the current quantum state with amplitudes and probabilities</li>
+                </ol>
+                <p><strong>Note:</strong> All gates operate on the first qubit (except CNOT which operates on both qubits). 
+                The state is displayed as [|00⟩, |01⟩, |10⟩, |11⟩] where each value is the amplitude of that basis state.</p>
+            </div>
+            
+            <div class="gate-info">
                 <h2>Quantum Gates</h2>
                 <p>This simulator demonstrates basic single-qubit and two-qubit quantum gates.</p>
                 
-                <h3>Single-Qubit Gates:</h3>
+                <h3>Single-Qubit Gates (operate on first qubit):</h3>
                 <button class="gate-button" onclick="applyGate('PauliX')">Pauli-X (Bit Flip)</button>
                 <button class="gate-button" onclick="applyGate('PauliY')">Pauli-Y</button>
                 <button class="gate-button" onclick="applyGate('PauliZ')">Pauli-Z (Phase Flip)</button>
@@ -250,10 +262,10 @@ def app2(request):
                     <option value="11">|11⟩</option>
                     <option value="plus">|+⟩ (Hadamard on |0⟩)</option>
                 </select>
-                <button class="gate-button" onclick="resetState()">Reset</button>
+                <button class="gate-button" onclick="resetState()">Reset State</button>
             </div>
             
-            <div id="result" class="result" style="display:none;">
+            <div id="result" class="result">
                 <h3>Current State:</h3>
                 <div id="stateDisplay"></div>
             </div>
@@ -277,7 +289,7 @@ def app2(request):
                         case '01': currentState = [0, 1, 0, 0]; break;
                         case '10': currentState = [0, 0, 1, 0]; break;
                         case '11': currentState = [0, 0, 0, 1]; break;
-                        case 'plus': currentState = [1/Math.SQRT2, 0, 1/Math.SQRT2, 0]; break;
+                        case 'plus': currentState = [1 / Math.SQRT2, 0, 1 / Math.SQRT2, 0]; break;
                     }
                     updateDisplay();
                 }
