@@ -27,14 +27,14 @@ def index(request):
 
 
 def app1(request):
-    """Application 1: LeetCode Two Sum Problem."""
+    """Application 1: LeetCode Trapping Rain Water Problem (Hard)."""
     html = """
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Two Sum - LeetCode Problem</title>
+            <title>Trapping Rain Water - LeetCode Hard Problem</title>
             <style>
-                body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+                body { font-family: Arial, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; }
                 .back-button { padding: 8px 15px; background: #666; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-bottom: 20px; }
                 .back-button:hover { background: #555; }
                 .problem { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
@@ -45,74 +45,134 @@ def app1(request):
                 button:hover { background: #45a049; }
                 #result { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; }
                 .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+                .visualization { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+                .bar-container { display: flex; align-items: flex-end; justify-content: center; height: 300px; gap: 5px; margin: 20px 0; }
+                .bar { background: #2196F3; width: 30px; border: 1px solid #1976D2; display: flex; flex-direction: column-reverse; }
+                .water { background: #00BCD4; }
+                .bar-label { text-align: center; margin-top: 5px; font-size: 12px; }
             </style>
         </head>
         <body>
             <a href="../" class="back-button">← Back to Index</a>
-            <h1>LeetCode Problem: Two Sum</h1>
+            <h1>LeetCode Problem: Trapping Rain Water (Hard)</h1>
             
             <div class="problem">
                 <h2>Problem Description</h2>
-                <p>Given an array of integers <code>nums</code> and an integer <code>target</code>, 
-                return <em>indices of the two numbers such that they add up to target</em>.</p>
-                <p>You may assume that each input would have <strong>exactly one solution</strong>, 
-                and you may not use the same element twice.</p>
-                <p>You can return the answer in any order.</p>
+                <p>Given <code>n</code> non-negative integers representing an elevation map where the width of each bar is 1, 
+                compute how much water it can trap after raining.</p>
+                <p><strong>Example:</strong></p>
+                <p>Given elevation map <code>[0,1,0,2,1,0,1,3,2,1,2,1]</code>, return <code>6</code> units of water.</p>
             </div>
             
             <div class="example">
                 <strong>Example 1:</strong><br>
-                Input: nums = [2,7,11,15], target = 9<br>
-                Output: [0,1]<br>
-                Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].
+                Input: height = [0,1,0,2,1,0,1,3,2,1,2,1]<br>
+                Output: 6<br>
+                Explanation: The above elevation map is represented by array [0,1,0,2,1,0,1,3,2,1,2,1]. 
+                In this case, 6 units of rain water (blue section) are being trapped.
             </div>
             
             <div class="example">
                 <strong>Example 2:</strong><br>
-                Input: nums = [3,2,4], target = 6<br>
-                Output: [1,2]
+                Input: height = [4,2,0,3,2,5]<br>
+                Output: 9
             </div>
             
             <h2>Try it yourself:</h2>
             <div>
-                <label>Array (comma-separated integers):</label><br>
-                <input type="text" id="nums" value="2,7,11,15" placeholder="2,7,11,15"><br>
-                <label>Target:</label><br>
-                <input type="number" id="target" value="9" placeholder="9"><br>
-                <button onclick="solveTwoSum()">Solve</button>
+                <label>Height array (comma-separated non-negative integers):</label><br>
+                <input type="text" id="heights" value="0,1,0,2,1,0,1,3,2,1,2,1" placeholder="0,1,0,2,1,0,1,3,2,1,2,1"><br>
+                <button onclick="solveTrappingRainWater()">Solve</button>
             </div>
             
             <div id="result"></div>
+            <div id="visualization" class="visualization" style="display:none;"></div>
             
             <script>
-                function solveTwoSum() {
-                    const numsStr = document.getElementById('nums').value;
-                    const target = parseInt(document.getElementById('target').value);
+                function solveTrappingRainWater() {
+                    const heightsStr = document.getElementById('heights').value;
                     
                     // Parse array
-                    const nums = numsStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+                    const height = heightsStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 0);
                     
-                    // Algorithm: Hash map approach (O(n) time complexity)
-                    const map = {};
-                    for (let i = 0; i < nums.length; i++) {
-                        const complement = target - nums[i];
-                        if (map[complement] !== undefined) {
-                            document.getElementById('result').innerHTML = 
-                                '<strong>Result:</strong> [' + map[complement] + ', ' + i + ']<br>' +
-                                '<strong>Explanation:</strong> nums[' + map[complement] + '] + nums[' + i + '] = ' + 
-                                nums[map[complement]] + ' + ' + nums[i] + ' = ' + target;
-                            document.getElementById('result').style.display = 'block';
-                            document.getElementById('result').className = 'success';
-                            return;
-                        }
-                        map[nums[i]] = i;
+                    if (height.length === 0) {
+                        document.getElementById('result').innerHTML = 
+                            '<strong>Error:</strong> Please enter valid non-negative integers.';
+                        document.getElementById('result').style.display = 'block';
+                        document.getElementById('result').className = 'success';
+                        return;
                     }
                     
+                    // Algorithm: Two Pointer Approach (O(n) time, O(1) space)
+                    let left = 0, right = height.length - 1;
+                    let leftMax = 0, rightMax = 0;
+                    let water = 0;
+                    
+                    while (left < right) {
+                        if (height[left] < height[right]) {
+                            if (height[left] >= leftMax) {
+                                leftMax = height[left];
+                            } else {
+                                water += leftMax - height[left];
+                            }
+                            left++;
+                        } else {
+                            if (height[right] >= rightMax) {
+                                rightMax = height[right];
+                            } else {
+                                water += rightMax - height[right];
+                            }
+                            right--;
+                        }
+                    }
+                    
+                    // Create visualization
+                    let maxHeight = Math.max(...height);
+                    let visHTML = '<h3>Visualization:</h3><div class="bar-container">';
+                    
+                    for (let i = 0; i < height.length; i++) {
+                        const barHeight = height[i];
+                        const barPercent = (barHeight / maxHeight) * 100;
+                        
+                        // Calculate trapped water at this position (simplified for visualization)
+                        let waterHeight = 0;
+                        if (i > 0 && i < height.length - 1) {
+                            const leftMaxHeight = Math.max(...height.slice(0, i));
+                            const rightMaxHeight = Math.max(...height.slice(i + 1));
+                            const minWall = Math.min(leftMaxHeight, rightMaxHeight);
+                            if (minWall > barHeight) {
+                                waterHeight = minWall - barHeight;
+                            }
+                        }
+                        
+                        const waterPercent = waterHeight > 0 ? (waterHeight / maxHeight) * 100 : 0;
+                        
+                        visHTML += '<div style="display: flex; flex-direction: column; align-items: center;">';
+                        visHTML += `<div class="bar" style="height: ${barPercent}%;">`;
+                        if (waterHeight > 0) {
+                            visHTML += `<div class="water" style="height: ${waterPercent}%;"></div>`;
+                        }
+                        visHTML += '</div>';
+                        visHTML += `<div class="bar-label">${barHeight}</div>`;
+                        visHTML += '</div>';
+                    }
+                    visHTML += '</div>';
+                    
                     document.getElementById('result').innerHTML = 
-                        '<strong>No solution found!</strong> There is no pair that adds up to ' + target;
+                        '<strong>Result:</strong> ' + water + ' units of trapped water<br>' +
+                        '<strong>Input:</strong> [' + height.join(', ') + ']<br>' +
+                        '<strong>Algorithm:</strong> Two-pointer approach (O(n) time, O(1) space)';
                     document.getElementById('result').style.display = 'block';
                     document.getElementById('result').className = 'success';
+                    
+                    document.getElementById('visualization').innerHTML = visHTML;
+                    document.getElementById('visualization').style.display = 'block';
                 }
+                
+                // Auto-solve on load with default example
+                window.onload = function() {
+                    solveTrappingRainWater();
+                };
             </script>
         </body>
         </html>
