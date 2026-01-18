@@ -1,6 +1,4 @@
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.http import require_http_methods
-import json
+from django.http import HttpResponse
 
 
 def index(request):
