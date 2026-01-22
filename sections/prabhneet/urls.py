@@ -1,9 +1,10 @@
-from django.contrib import admin
 from django.urls import path, include
+from . import views
+
+app_name = 'prabhneet'
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('pages/pages.urls')),     # Homepage
-    # path('app1/', include('app1.urls')), # app1 routes
-    # path('app2/', include('app2.urls')), # app2 routes
+    path('', views.home, name='home'),
+    # path('app1/', include('sections.prabhneet.apps.app1.urls')),
+    # path('app2/', include('sections.prabhneet.apps.app2.urls')),
 ]
