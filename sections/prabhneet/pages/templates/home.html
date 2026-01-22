@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeetCode Solutions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .solutions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .solution-card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .solution-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .problem-number {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4CAF50;
+        }
+
+        .difficulty {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .difficulty.medium {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .difficulty.easy {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .difficulty.hard {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .card-description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .card-footer {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #888;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .complexity-tag {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .placeholder-card {
+            background: #fafafa;
+            border: 2px dashed #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-style: italic;
+            cursor: default;
+        }
+
+        .placeholder-card:hover {
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1> Prabhneet Singh - Programming Lab Exam</h1>
+            <p class="subtitle">Lecturer: Fernando Almaguer Angeles</p>
+        </header>
+
+        <div class="solutions-grid">
+            <!-- Solution 1: Triangular Sum -->
+            <a href="{% url 'app1:triangular_sum' %}" class="solution-card">
+                <div class="card-header">
+                    <span class="problem-number">LeetCode #2221</span>
+                    <span class="difficulty medium">Medium - #Task1</span>
+                </div>
+                <h3 class="card-title">Find Triangular Sum of an Array</h3>
+                <p class="card-description">
+                    Calculate the triangular sum by repeatedly creating new arrays from adjacent element sums until one
+                    value remains. Includes step-by-step visualization.
+                </p>
+                <div class="card-footer">
+                    <span class="complexity-tag">⏱️ Time: O(n²)</span>
+                    <span class="complexity-tag">💾 Space: O(1)</span>
+                </div>
+            </a>
+
+            <!-- Placeholder for Solution 2 -->
+            <a href="{% url 'app2:bloch' %}" class="solution-card">
+                <div class="card-header">
+                    <span class="problem-number">Quantum Physics</span>
+                    <span class="difficulty medium">#Task2</span>
+                </div>
+                <h3 class="card-title">Interactive Bloch Sphere</h3>
+                <p class="card-description">
+                    Visualize quantum states on the Bloch sphere. Adjust theta and phi angles to explore different qubit
+                    states with real-time formula updates.
+                </p>
+                <div class="card-footer">
+                    <span class="complexity-tag">🎯 Interactive</span>
+                    <span class="complexity-tag">📊 Visualization</span>
+                </div>
+            </a>
+        </div>
+    </div>
+    <div class="container" style="text-align: center; margin-top: 40px;">
+        <a href="javascript:history.back()"
+            style="display: inline-block; padding: 12px 24px; background: #333; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">←
+            Go Back to Students List</a>
+    </div>
+</body>
+
+</html>
