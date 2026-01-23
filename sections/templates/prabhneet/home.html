@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -190,7 +191,7 @@
         </div>
     </div>
     <div class="container" style="text-align: center; margin-top: 40px;">
-        <a href="javascript:history.back()"
+        <a href="{%url 'global_index'%}"
             style="display: inline-block; padding: 12px 24px; background: #333; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">←
             Go Back to Students List</a>
     </div>
