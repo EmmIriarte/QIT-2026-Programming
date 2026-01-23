@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -155,7 +156,7 @@
 
         <div class="solutions-grid">
             <!-- Solution 1: Triangular Sum -->
-            <a href="/" class="solution-card">
+            <a href="/prabhneet/app1/triangular_sum/" class="solution-card">
                 <div class="card-header">
                     <span class="problem-number">LeetCode #2221</span>
                     <span class="difficulty medium">Medium - #Task1</span>
@@ -172,7 +173,7 @@
             </a>
 
             <!-- Placeholder for Solution 2 -->
-            <a href="/" class="solution-card">
+            <a href="/prabhneet/app2/bloch/" class="solution-card">
                 <div class="card-header">
                     <span class="problem-number">Quantum Physics</span>
                     <span class="difficulty medium">#Task2</span>
@@ -190,7 +191,7 @@
         </div>
     </div>
     <div class="container" style="text-align: center; margin-top: 40px;">
-        <a href="javascript:history.back()"
+        <a href="{%url 'global_index'%}"
             style="display: inline-block; padding: 12px 24px; background: #333; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">←
             Go Back to Students List</a>
     </div>

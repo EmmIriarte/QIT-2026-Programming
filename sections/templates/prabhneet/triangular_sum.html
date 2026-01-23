@@ -1,0 +1,407 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Triangular Sum Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .description {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .problem-info {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .problem-description {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .problem-description h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .problem-description p {
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .problem-description ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .problem-description li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .problem-description code {
+            background: #e8e8e8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .examples {
+            margin-top: 15px;
+        }
+
+        .examples h4 {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 8px;
+            margin-top: 12px;
+        }
+
+        .examples pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 12px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .diagram {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .diagram img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: white;
+        }
+
+        .complexity {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .complexity strong {
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:active {
+            background: #3d8b40;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 3px solid #4CAF50;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .result-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .error {
+            background: #ffe6e6;
+            border-left-color: #f44336;
+        }
+
+        .error .result-value {
+            color: #f44336;
+            font-size: 14px;
+        }
+
+        .steps {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .step {
+            font-family: 'Courier New', monospace;
+            padding: 5px 0;
+            color: #555;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔺 Triangular Sum Calculator</h1>
+        <p class="problem-info">
+            <strong>LeetCode #2221</strong> (Medium)
+        </p>
+
+        <div class="problem-description">
+            <h3>Problem Statement:</h3>
+            <p>You are given a 0-indexed integer array <code>nums</code>, where <code>nums[i]</code> is a digit between
+                <code>0</code> and <code>9</code> (inclusive).
+            </p>
+            <p>The triangular sum of <code>nums</code> is the value of the only element present in <code>nums</code>
+                after the following process terminates:</p>
+            <ol>
+                <li>Let <code>nums</code> comprise of <code>n</code> elements. If <code>n == 1</code>, end the process.
+                    Otherwise, create a new 0-indexed integer array <code>newNums</code> of length <code>n - 1</code>.
+                </li>
+                <li>For each index <code>i</code>, where <code>0 <= i < n - 1</code>, assign the value of
+                    <code>newNums[i]</code> as <code>(nums[i] + nums[i+1]) % 10</code>, where <code>%</code> denotes
+                    modulo operator.
+                </li>
+                <li>Replace the array <code>nums</code> with <code>newNums</code>.</li>
+                <li>Repeat the entire process starting from step 1.</li>
+            </ol>
+            <p>Return the triangular sum of <code>nums</code>.</p>
+
+            <div class="examples">
+                <h4>Example 1:</h4>
+                <div class="diagram">
+                    <img src="{% static 'prabhneet/app1/images/triangular_sum_diagram.png' %}"
+                     style="width: 50%; height: 50%;" alt="Triangular Sum Diagram">
+                </div>
+                <pre>Input: nums = [1,2,3,4,5]
+Output: 8
+Explanation:
+The above diagram depicts the process from which we obtain the triangular sum of the array.</pre>
+
+                <h4>Example 2:</h4>
+                <pre>Input: nums = [5]
+Output: 5
+Explanation:
+Since there is only one element in nums, the triangular sum is the value of that element itself.</pre>
+            </div>
+        </div>
+
+        <div class="complexity">
+            <strong>Time Complexity:</strong> O(n²) - We perform n-1 + n-2 + ... + 1 operations<br>
+            <strong>Space Complexity:</strong> O(1) - Array is modified in-place
+        </div>
+
+        <div class="input-group">
+            <label for="numsInput">Enter Array (comma-separated digits):</label>
+            <input type="text" id="numsInput" placeholder="e.g., 1,2,3,4,5" autocomplete="off">
+            <div class="hint">Enter digits between 0-9, separated by commas</div>
+        </div>
+
+        <button onclick="calculate()">Calculate Triangular Sum</button>
+
+        <div id="result" class="result">
+            <div class="result-label">Triangular Sum:</div>
+            <div class="result-value" id="resultValue"></div>
+            <div id="steps" class="steps"></div>
+        </div>
+
+        <div class="container" style="text-align: center; margin-top: 20px;">
+            <a href="{% url 'prabhneet:home' %}"
+                style="display: inline-block; padding: 10px 20px; color: #333; text-decoration: none; border-radius: 2px;">←
+                Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        var triangularSum = function (nums) {
+            for (let i = 1; i < nums.length; i++) {
+                for (let j = 0; j < nums.length - i; j++) {
+                    nums[j] = (nums[j] + nums[j + 1]) % 10;
+                }
+            }
+            return nums[0];
+        };
+
+        function calculate() {
+            const input = document.getElementById('numsInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            const resultValue = document.getElementById('resultValue');
+            const stepsDiv = document.getElementById('steps');
+
+            // Clear previous steps
+            stepsDiv.innerHTML = '';
+
+            // Validate input
+            if (!input) {
+                showError('Please enter an array of numbers');
+                return;
+            }
+
+            // Parse input
+            const nums = input.split(',').map(s => s.trim());
+
+            // Validate each number
+            for (let num of nums) {
+                if (num === '' || isNaN(num) || parseInt(num) < 0 || parseInt(num) > 9) {
+                    showError('All values must be digits between 0 and 9');
+                    return;
+                }
+            }
+
+            // Convert to integers
+            const numsArray = nums.map(n => parseInt(n));
+
+            // Show steps
+            showSteps(numsArray.slice());
+
+            // Calculate result
+            const result = triangularSum(numsArray.slice());
+
+            // Display result
+            resultDiv.classList.remove('error');
+            resultDiv.classList.add('show');
+            resultValue.textContent = result;
+        }
+
+        function showSteps(nums) {
+            const stepsDiv = document.getElementById('steps');
+            const originalNums = nums.slice();
+
+            stepsDiv.innerHTML = '<div class="result-label">Step-by-step:</div>';
+            stepsDiv.innerHTML += `<div class="step">Start: [${originalNums.join(', ')}]</div>`;
+
+            let step = 1;
+            for (let i = 1; i < originalNums.length; i++) {
+                for (let j = 0; j < nums.length - i; j++) {
+                    nums[j] = (nums[j] + nums[j + 1]) % 10;
+                }
+                const display = nums.slice(0, nums.length - i);
+                stepsDiv.innerHTML += `<div class="step">Step ${step}: [${display.join(', ')}]</div>`;
+                step++;
+            }
+        }
+
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            const resultValue = document.getElementById('resultValue');
+            const stepsDiv = document.getElementById('steps');
+
+            stepsDiv.innerHTML = '';
+            resultDiv.classList.add('error', 'show');
+            resultValue.textContent = message;
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('numsInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                calculate();
+            }
+        });
+    </script>
+</body>
+
+</html>

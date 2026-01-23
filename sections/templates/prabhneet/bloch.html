@@ -1,0 +1,269 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloch Sphere</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+        }
+
+        svg {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .controls {
+            margin-bottom: 30px;
+        }
+
+        .button-group {
+            margin: 15px 0;
+        }
+
+        .button-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: 2px solid #333;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button.active {
+            background: #333;
+            color: white;
+        }
+
+        button:hover {
+            background: #555;
+            color: white;
+        }
+
+        .slider-group {
+            margin: 20px 0;
+        }
+
+        .slider-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .value-display {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #333;
+        }
+
+        .info-box {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 3px solid #4a90e2;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Interactive Bloch Sphere</h1>
+
+    <div class="container controls">
+        <h2>Select Quantum State</h2>
+
+        <div class="button-group">
+            <label>Common States:</label>
+            <button onclick="setState(0, 0)" class="active">|0⟩ (Ground)</button>
+            <button onclick="setState(180, 0)">|1⟩ (Excited)</button>
+            <button onclick="setState(90, 0)">|+⟩</button>
+            <button onclick="setState(90, 180)">|−⟩</button>
+            <button onclick="setState(90, 90)">|i⟩</button>
+            <button onclick="setState(90, 270)">|−i⟩</button>
+        </div>
+
+        <div class="slider-group">
+            <label>Theta (θ): <span id="thetaValue">0°</span></label>
+            <input type="range" id="thetaSlider" min="0" max="180" value="0" step="5" oninput="updateFromSliders()">
+        </div>
+
+        <div class="slider-group">
+            <label>Phi (φ): <span id="phiValue">0°</span></label>
+            <input type="range" id="phiSlider" min="0" max="360" value="0" step="15" oninput="updateFromSliders()">
+        </div>
+
+        <div class="value-display">
+            <strong>Current State:</strong><br>
+            <span id="stateFormula">|ψ⟩ = |0⟩</span>
+        </div>
+
+        <div class="info-box">
+            <strong>State Description:</strong><br>
+            <span id="stateDescription">Ground state - the qubit is definitely in state |0⟩</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <svg width="600" height="600" viewBox="-300 -300 600 600">
+            <!-- Sphere outline -->
+            <circle cx="0" cy="0" r="200" fill="none" stroke="#4a90e2" stroke-width="2" />
+
+            <!-- Equator -->
+            <ellipse cx="0" cy="0" rx="200" ry="50" fill="none" stroke="#6699cc" stroke-width="1"
+                stroke-dasharray="5,5" />
+
+            <!-- Z-axis (vertical) -->
+            <line x1="0" y1="-250" x2="0" y2="250" stroke="#00aa00" stroke-width="3" />
+            <polygon points="0,-250 -5,-240 5,-240" fill="#00aa00" />
+            <polygon points="0,250 -5,240 5,240" fill="#00aa00" />
+            <text x="10" y="-230" font-size="20" fill="#00aa00">|0⟩</text>
+            <text x="10" y="245" font-size="20" fill="#00aa00">|1⟩</text>
+
+            <!-- X-axis -->
+            <line x1="-250" y1="0" x2="250" y2="0" stroke="#aa0000" stroke-width="2" />
+            <polygon points="250,0 240,-5 240,5" fill="#aa0000" />
+            <polygon points="-250,0 -240,-5 -240,5" fill="#aa0000" />
+            <text x="230" y="-10" font-size="18" fill="#aa0000">X</text>
+
+            <!-- Y-axis -->
+            <line x1="0" y1="-40" x2="0" y2="40" stroke="#0000aa" stroke-width="2" />
+            <text x="-25" y="30" font-size="18" fill="#0000aa">Y</text>
+
+            <!-- State vector (will be updated by JavaScript) -->
+            <line id="stateVector" x1="0" y1="0" x2="0" y2="-200" stroke="#ff6600" stroke-width="4" />
+            <circle id="statePoint" cx="0" cy="-200" r="10" fill="#ff6600" />
+            <text id="stateLabel" x="10" y="-190" font-size="18" fill="#ff6600" font-weight="bold">|ψ⟩</text>
+        </svg>
+    </div>
+
+    <div class="container">
+        <h2>About the Bloch Sphere</h2>
+        <p>The Bloch sphere is a geometric representation of pure quantum states for a two-level system (qubit).</p>
+        <p><strong>General form:</strong> |ψ⟩ = cos(θ/2)|0⟩ + e^(iφ)sin(θ/2)|1⟩</p>
+        <p>Where θ ranges from 0° to 180° and φ ranges from 0° to 360°.</p>
+    </div>
+
+    <div class="container" style="text-align: center; margin-top: 20px;">
+        <a href="{% url 'prabhneet:home' %}"
+            style="display: inline-block; padding: 10px 20px; color: #333; text-decoration: none; border-radius: 2px;">←
+            Back to Home</a>
+    </div>
+
+    <script>
+        let currentTheta = 0;
+        let currentPhi = 0;
+
+        function setState(theta, phi) {
+            currentTheta = theta;
+            currentPhi = phi;
+
+            document.getElementById('thetaSlider').value = theta;
+            document.getElementById('phiSlider').value = phi;
+            document.getElementById('thetaValue').textContent = theta + '°';
+            document.getElementById('phiValue').textContent = phi + '°';
+
+            updateButtons();
+            updateVisualization();
+        }
+
+        function updateFromSliders() {
+            currentTheta = parseInt(document.getElementById('thetaSlider').value);
+            currentPhi = parseInt(document.getElementById('phiSlider').value);
+
+            document.getElementById('thetaValue').textContent = currentTheta + '°';
+            document.getElementById('phiValue').textContent = currentPhi + '°';
+
+            updateButtons();
+            updateVisualization();
+        }
+
+        function updateButtons() {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+        }
+
+        function updateVisualization() {
+            const thetaRad = (currentTheta * Math.PI) / 180;
+            const phiRad = (currentPhi * Math.PI) / 180;
+
+            // Calculate 2D projection (simplified - showing x and z coordinates)
+            const x = 200 * Math.sin(thetaRad) * Math.cos(phiRad);
+            const y = -200 * Math.cos(thetaRad); // negative because SVG y-axis is flipped
+
+            // Update vector
+            document.getElementById('stateVector').setAttribute('x2', x);
+            document.getElementById('stateVector').setAttribute('y2', y);
+            document.getElementById('statePoint').setAttribute('cx', x);
+            document.getElementById('statePoint').setAttribute('cy', y);
+            document.getElementById('stateLabel').setAttribute('x', x + 10);
+            document.getElementById('stateLabel').setAttribute('y', y + 5);
+
+            // Update formula
+            const halfTheta = currentTheta / 2;
+            const cosVal = Math.cos((halfTheta * Math.PI) / 180).toFixed(3);
+            const sinVal = Math.sin((halfTheta * Math.PI) / 180).toFixed(3);
+
+            let formula = `|ψ⟩ = ${cosVal}|0⟩`;
+            if (sinVal > 0.001) {
+                if (currentPhi === 0) {
+                    formula += ` + ${sinVal}|1⟩`;
+                } else {
+                    formula += ` + ${sinVal}e^(i${currentPhi}°)|1⟩`;
+                }
+            }
+
+            document.getElementById('stateFormula').textContent = formula;
+
+            // Update description
+            let description = getStateDescription(currentTheta, currentPhi);
+            document.getElementById('stateDescription').textContent = description;
+        }
+
+        function getStateDescription(theta, phi) {
+            if (theta === 0) return "Ground state - the qubit is definitely in state |0⟩";
+            if (theta === 180) return "Excited state - the qubit is definitely in state |1⟩";
+            if (theta === 90 && phi === 0) return "|+⟩ state - equal superposition of |0⟩ and |1⟩";
+            if (theta === 90 && phi === 180) return "|−⟩ state - equal superposition with negative phase";
+            if (theta === 90 && phi === 90) return "|i⟩ state - equal superposition with i phase";
+            if (theta === 90 && phi === 270) return "|−i⟩ state - equal superposition with −i phase";
+            if (theta === 90) return "Superposition state on the equator with phase φ = " + phi + "°";
+            if (theta < 90) return "Superposition state closer to |0⟩ than |1⟩";
+            return "Superposition state closer to |1⟩ than |0⟩";
+        }
+
+        // Initialize
+        setState(0, 0);
+    </script>
+</body>
+
+</html>
