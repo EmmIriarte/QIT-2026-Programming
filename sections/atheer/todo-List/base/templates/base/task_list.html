@@ -1,0 +1,32 @@
+
+
+{%if request.user.is_authenticated %}
+<p> {{request.user}}</p>
+<a href="{% url 'logout' %}">Logout</a>
+{%else%}
+<a href="{% url 'login' %}">Login </a>
+{% endif %}
+<h1> My to do list </h1>
+<a href="{% url 'task-create'%}"> Add task </a>
+<form method="GET">
+    <input type="text" name="search-area" >
+    <input type="submit" value="Search">
+</form>
+<table>
+    <tr>
+        <th> item</th>
+        <th></th>
+        <th></th>
+        
+    </tr>
+    {% for task in tasks %}
+    <tr>
+        <td> {{task.title}}</td>
+        <td> <a href="{% url 'task' task.id %}">View Task</a> </td>
+        <td> <a href="{% url 'task-update' task.id %}">Edit</a> </td>
+        <td> <a href="{% url 'task-delete' task.id %}">Delete</a> </td>
+    </tr>
+    {% empty%}
+    <h3> no Items</h3>
+    {% endfor %}
+</table>
