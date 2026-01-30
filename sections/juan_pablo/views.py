@@ -1,3 +1,4 @@
+import json
 from django.http import HttpResponse
 
 
@@ -40,80 +41,6 @@ EXAMPLE_BOARDS = {
         ["5",".",".",".",".",".",".","7","9"]
     ],
 }
-
-
-def is_valid_sudoku(board):
-    """
-    Determines whether a 9x9 Sudoku board is valid.
-
-    A board is valid when no digit (1-9) appears more than once in any
-    row, any column, or any of the nine 3x3 sub-boxes. Empty cells,
-    represented by '.', are ignored during validation.
-
-    The algorithm performs three independent validation passes:
-      1. Row check   – iterate across each row looking for duplicate digits.
-      2. Column check – iterate down each column looking for duplicate digits.
-      3. Box check   – iterate through each 3x3 sub-box looking for duplicates.
-
-    Each pass uses a fresh set per group. If a digit is already in the set
-    the board is invalid; otherwise the digit is added to the set.
-
-    Args:
-        board: A 9x9 list of lists containing single-character strings
-               ('1'-'9' for filled cells, '.' for empty cells).
-
-    Returns:
-        A tuple (is_valid: bool, message: str) describing the result.
-
-    Time Complexity:  O(n^2) where n = 9 (three passes over the 81 cells).
-    Space Complexity: O(n)   (at most 9 elements stored per set at a time).
-    """
-
-    # --- Pass 1: validate every row -------------------------------------------
-    # Walk each row left-to-right; a set tracks digits seen so far in that row.
-    for i in range(9):
-        seen = set()
-        for j in range(9):
-            item = board[i][j]
-            if item in seen:
-                return False, f"Duplicate '{item}' found in row {i + 1}"
-            elif item != '.':
-                seen.add(item)
-
-    # --- Pass 2: validate every column ----------------------------------------
-    # Walk each column top-to-bottom; note the swapped indices board[j][i].
-    for i in range(9):
-        seen = set()
-        for j in range(9):
-            item = board[j][i]
-            if item in seen:
-                return False, f"Duplicate '{item}' found in column {i + 1}"
-            elif item != '.':
-                seen.add(item)
-
-    # --- Pass 3: validate every 3x3 sub-box -----------------------------------
-    # Each box is identified by the (row, col) of its top-left corner.
-    # We enumerate all nine starting positions explicitly for clarity.
-    box_starts = [
-        (0, 0), (0, 3), (0, 6),
-        (3, 0), (3, 3), (3, 6),
-        (6, 0), (6, 3), (6, 6),
-    ]
-
-    for start_row, start_col in box_starts:
-        seen = set()
-        # Scan the 3 rows and 3 columns that belong to this box.
-        for row in range(start_row, start_row + 3):
-            for col in range(start_col, start_col + 3):
-                item = board[row][col]
-                if item in seen:
-                    box_num_row = (start_row // 3) + 1
-                    box_num_col = (start_col // 3) + 1
-                    return False, f"Duplicate '{item}' found in 3x3 box ({box_num_row}, {box_num_col})"
-                elif item != '.':
-                    seen.add(item)
-
-    return True, "Valid Sudoku board! No duplicates found in any row, column, or 3x3 box."
 
 
 # =============================================================================
@@ -208,7 +135,7 @@ MULTITHREADING_DATA = {
             },
             {
                 'subtitle': 'Fork-Join Pattern',
-                'text': 'A task is split (forked) into smaller subtasks that execute in parallel. Once all subtasks complete, their results are combined (joined). This is the foundation of divide-and-conquer parallelism. Example: parallel merge sort forks the array into halves, sorts each in a separate thread, then joins the results. Java ForkJoinPool and Python concurrent.futures implement this pattern.'
+                'text': 'A task is split (forked) into smaller subtasks that execute in parallel. Once all subtasks complete, their results are combined (joined). This is the foundation of divide-and-conquer parallelism. Example: parallel merge sort forks the array into halves, sorts each in a separate thread, then joins the results. Python concurrent.futures implement this pattern.'
             },
         ],
         'key_concepts': ['Producer-Consumer', 'Thread Pool', 'Reader-Writer', 'Fork-Join', 'Bounded Buffer', 'Worker Threads'],
@@ -439,8 +366,9 @@ SUDOKU_STYLE = """
     .board-table td.empty { color: #ccc; }
     .valid { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; }
     .invalid { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; }
-    .board-selector a { display: inline-block; padding: 8px 16px; margin: 5px; background: #2196F3; color: white; text-decoration: none; border-radius: 4px; }
-    .board-selector a:hover { background: #1976D2; }
+    .board-selector a, .board-selector button { display: inline-block; padding: 8px 16px; margin: 5px; background: #2196F3; color: white; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; font-size: 14px; }
+    .board-selector a:hover, .board-selector button:hover { background: #1976D2; }
+    .board-selector button.active { background: #1976D2; font-weight: bold; }
     .info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
     pre { background: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; }
     table.analysis { border-collapse: collapse; width: 100%; margin: 10px 0; }
@@ -451,59 +379,34 @@ SUDOKU_STYLE = """
 
 
 def app1(request):
-    """Application 1: Sudoku Validator — validated server-side in Python."""
-    board_type = request.GET.get('board', 'valid')
-    if board_type not in EXAMPLE_BOARDS:
-        board_type = 'valid'
-
-    current_board = EXAMPLE_BOARDS[board_type]
-    is_valid, message = is_valid_sudoku(current_board)
-
-    # Build board HTML table
-    board_rows = ""
-    for row in current_board:
-        cells = ""
-        for cell in row:
-            css_class = ' class="empty"' if cell == '.' else ''
-            cells += f"<td{css_class}>{cell}</td>"
-        board_rows += f"<tr>{cells}</tr>"
-
-    # Build board selector links
-    board_links = ""
-    for b in EXAMPLE_BOARDS.keys():
-        label = b.replace("_", " ").title()
-        board_links += f'<a href="?board={b}">{label}</a> '
-
-    # Validation result
-    status_text = "VALID" if is_valid else "INVALID"
-    result_class = "valid" if is_valid else "invalid"
-
-    html = f"""
+    """Application 1: Sudoku Validator"""
+    boards_json = json.dumps(EXAMPLE_BOARDS)
+    html = """
         <!DOCTYPE html>
         <html>
         <head>
             <title>Sudoku Validator - Juan Pablo Sanchez</title>
-            {SUDOKU_STYLE}
+            """ + SUDOKU_STYLE + """
         </head>
         <body>
             <p><a href="/juan_pablo/">Back to Home</a></p>
             <h1>Sudoku Validator</h1>
             <p>LeetCode Problem #36 - Validate a 9x9 Sudoku board</p>
 
-            <h3>Current Board: {board_type.replace('_', ' ').title()}</h3>
-            <table class="board-table">
-                {board_rows}
-            </table>
+            <h3>Current Board: <span id="board-label">Valid</span></h3>
+            <table class="board-table" id="board-table"></table>
 
             <div class="board-selector">
                 <strong>Select a board:</strong><br>
-                {board_links}
+                <button type="button" data-board="valid">Valid</button>
+                <button type="button" data-board="invalid_row">Invalid Row</button>
+                <button type="button" data-board="invalid_column">Invalid Column</button>
             </div>
 
             <h3>Validation Result</h3>
-            <div class="{result_class}">
-                <strong>{status_text}</strong>
-                <p>{message}</p>
+            <div id="result-box" class="valid">
+                <strong id="result-status">VALID</strong>
+                <p id="result-message"></p>
             </div>
 
             <div class="info">
@@ -519,144 +422,117 @@ def app1(request):
 
             <div class="info">
                 <h2>Algorithm Explanation</h2>
-                <p>The algorithm validates the board in <strong>three separate passes</strong>, each checking one constraint using a hash set to detect duplicates:</p>
-
-                <h3>Pass 1 &mdash; Validate Rows</h3>
-                <p>For each of the 9 rows, iterate across all columns. A fresh set tracks the digits seen so far. If a digit is already in the set, the row contains a duplicate and the board is invalid.</p>
-                <pre># Walk each row left-to-right
-for i in range(9):
-    seen = set()
-    for j in range(9):
-        item = board[i][j]
-        if item in seen:
-            return False      # duplicate in this row
-        elif item != '.':
-            seen.add(item)    # remember this digit</pre>
-
-                <h3>Pass 2 &mdash; Validate Columns</h3>
-                <p>Same logic, but the indices are swapped (<code>board[j][i]</code>) so we walk top-to-bottom down each column instead of left-to-right across a row.</p>
-                <pre># Walk each column top-to-bottom (note swapped indices)
-for i in range(9):
-    seen = set()
-    for j in range(9):
-        item = board[j][i]    # j is row, i is column
-        if item in seen:
-            return False
-        elif item != '.':
-            seen.add(item)</pre>
-
-                <h3>Pass 3 &mdash; Validate 3x3 Boxes</h3>
-                <p>Each box is identified by the (row, col) of its top-left corner. We list all nine starting positions explicitly, then scan the 3&times;3 area from each start.</p>
-                <pre># All nine top-left corners
-box_starts = [(0,0), (0,3), (0,6),
-              (3,0), (3,3), (3,6),
-              (6,0), (6,3), (6,6)]
-
-for start_row, start_col in box_starts:
-    seen = set()
-    for row in range(start_row, start_row + 3):
-        for col in range(start_col, start_col + 3):
-            item = board[row][col]
-            if item in seen:
-                return False
-            elif item != '.':
-                seen.add(item)</pre>
+                <p>The algorithm validates the board in <strong>three separate passes</strong>, each checking one constraint using a Set to detect duplicates:</p>
+                <h3>Pass 1 &mdash; Rows</h3>
+                <p>For each row, a Set tracks digits seen; duplicate in row &rarr; invalid.</p>
+                <h3>Pass 2 &mdash; Columns</h3>
+                <p>Same logic with indices swapped (<code>board[j][i]</code>).</p>
+                <h3>Pass 3 &mdash; 3x3 Boxes</h3>
+                <p>Nine top-left corners; scan each 3&times;3 box with a Set.</p>
             </div>
 
             <div class="info">
-                <h2>Complexity Analysis</h2>
+                <h2>Complexity</h2>
                 <table class="analysis">
-                    <tr>
-                        <td><strong>Time Complexity</strong></td>
-                        <td><strong>O(n&sup2;)</strong> where n = 9. Three passes each scan all 81 cells, giving 3 &times; 81 = 243 operations &mdash; still constant for a fixed board size.</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Space Complexity</strong></td>
-                        <td><strong>O(n)</strong> where n = 9. Only one set of at most 9 elements exists at a time (re-created for each row, column, or box).</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Data Structure</strong></td>
-                        <td><strong>Hash Set</strong> &mdash; Provides O(1) average-case lookup, making duplicate detection efficient.</td>
-                    </tr>
+                    <tr><td><strong>Time</strong></td><td>O(n&sup2;), n=9</td></tr>
+                    <tr><td><strong>Space</strong></td><td>O(n), one Set per group</td></tr>
                 </table>
             </div>
 
-            <div class="info">
-                <h2>Why Three Separate Passes?</h2>
-                <p>Splitting the validation into three independent passes makes the code easier to read and reason about. Each pass has a single responsibility:</p>
-                <ul>
-                    <li><strong>Pass 1</strong> only cares about rows &mdash; the inner loop moves across columns.</li>
-                    <li><strong>Pass 2</strong> only cares about columns &mdash; the indices are simply swapped.</li>
-                    <li><strong>Pass 3</strong> only cares about boxes &mdash; the start positions are listed explicitly so there is no index math to decode.</li>
-                </ul>
-                <p>A single-pass approach (using 27 sets simultaneously) is also valid and equally efficient, but the three-pass version is more transparent for learning purposes.</p>
-            </div>
+            <script>
+            (function() {
+                var exampleBoards = """ + boards_json + """;
 
-            <div class="info">
-                <h2>3x3 Box Layout</h2>
-                <p>The board is divided into nine 3&times;3 sub-boxes. Each box is scanned starting from its top-left corner:</p>
-                <table class="box-diagram">
-                    <tr>
-                        <td>Box (0,0)<br>rows 0-2, cols 0-2</td>
-                        <td>Box (0,3)<br>rows 0-2, cols 3-5</td>
-                        <td>Box (0,6)<br>rows 0-2, cols 6-8</td>
-                    </tr>
-                    <tr>
-                        <td>Box (3,0)<br>rows 3-5, cols 0-2</td>
-                        <td>Box (3,3)<br>rows 3-5, cols 3-5</td>
-                        <td>Box (3,6)<br>rows 3-5, cols 6-8</td>
-                    </tr>
-                    <tr>
-                        <td>Box (6,0)<br>rows 6-8, cols 0-2</td>
-                        <td>Box (6,3)<br>rows 6-8, cols 3-5</td>
-                        <td>Box (6,6)<br>rows 6-8, cols 6-8</td>
-                    </tr>
-                </table>
-            </div>
+                function isValidSudoku(board) {
+                    var i, j, item, seen, startRow, startCol, row, col, boxNumRow, boxNumCol;
+                    // Pass 1: rows
+                    for (i = 0; i < 9; i++) {
+                        seen = new Set();
+                        for (j = 0; j < 9; j++) {
+                            item = board[i][j];
+                            if (seen.has(item)) return { valid: false, message: "Duplicate '" + item + "' found in row " + (i + 1) };
+                            if (item !== '.') seen.add(item);
+                        }
+                    }
+                    // Pass 2: columns
+                    for (i = 0; i < 9; i++) {
+                        seen = new Set();
+                        for (j = 0; j < 9; j++) {
+                            item = board[j][i];
+                            if (seen.has(item)) return { valid: false, message: "Duplicate '" + item + "' found in column " + (i + 1) };
+                            if (item !== '.') seen.add(item);
+                        }
+                    }
+                    // Pass 3: 3x3 boxes
+                    var boxStarts = [[0,0],[0,3],[0,6],[3,0],[3,3],[3,6],[6,0],[6,3],[6,6]];
+                    for (var b = 0; b < boxStarts.length; b++) {
+                        startRow = boxStarts[b][0]; startCol = boxStarts[b][1];
+                        seen = new Set();
+                        for (row = startRow; row < startRow + 3; row++) {
+                            for (col = startCol; col < startCol + 3; col++) {
+                                item = board[row][col];
+                                if (seen.has(item)) {
+                                    boxNumRow = Math.floor(startRow / 3) + 1;
+                                    boxNumCol = Math.floor(startCol / 3) + 1;
+                                    return { valid: false, message: "Duplicate '" + item + "' found in 3x3 box (" + boxNumRow + ", " + boxNumCol + ")" };
+                                }
+                                if (item !== '.') seen.add(item);
+                            }
+                        }
+                    }
+                    return { valid: true, message: "Valid Sudoku board! No duplicates found in any row, column, or 3x3 box." };
+                }
 
-            <div class="info">
-                <h2>Complete Solution</h2>
-                <pre>class Solution:
-    def isValidSudoku(self, board: List[List[str]]) -&gt; bool:
-        # Validate Rows
-        for i in range(9):
-            s = set()
-            for j in range(9):
-                item = board[i][j]
-                if item in s:
-                    return False
-                elif item != '.':
-                    s.add(item)
+                function renderBoard(board) {
+                    var table = document.getElementById('board-table');
+                    table.innerHTML = '';
+                    for (var r = 0; r < 9; r++) {
+                        var tr = document.createElement('tr');
+                        for (var c = 0; c < 9; c++) {
+                            var td = document.createElement('td');
+                            td.textContent = board[r][c];
+                            if (board[r][c] === '.') td.className = 'empty';
+                            tr.appendChild(td);
+                        }
+                        table.appendChild(tr);
+                    }
+                }
 
-        # Validate Cols
-        for i in range(9):
-            s = set()
-            for j in range(9):
-                item = board[j][i]
-                if item in s:
-                    return False
-                elif item != '.':
-                    s.add(item)
+                function updateResult() {
+                    var sel = document.querySelector('.board-selector button[data-board].active') || document.querySelector('.board-selector button[data-board]');
+                    var boardKey = sel ? sel.getAttribute('data-board') : 'valid';
+                    if (!exampleBoards[boardKey]) boardKey = 'valid';
+                    document.querySelectorAll('.board-selector button[data-board]').forEach(function(btn) {
+                        btn.classList.toggle('active', btn.getAttribute('data-board') === boardKey);
+                    });
+                    var label = document.getElementById('board-label');
+                    label.textContent = boardKey.replace(/_/g, ' ').replace(/\\b\\w/g, function(c) { return c.toUpperCase(); });
+                    var board = exampleBoards[boardKey];
+                    renderBoard(board);
+                    var result = isValidSudoku(board);
+                    var box = document.getElementById('result-box');
+                    box.className = result.valid ? 'valid' : 'invalid';
+                    document.getElementById('result-status').textContent = result.valid ? 'VALID' : 'INVALID';
+                    document.getElementById('result-message').textContent = result.message;
+                }
 
-        # Validate Boxes
-        starts = [(0, 0), (0, 3), (0, 6),
-                  (3, 0), (3, 3), (3, 6),
-                  (6, 0), (6, 3), (6, 6)]
+                document.querySelectorAll('.board-selector button[data-board]').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var key = this.getAttribute('data-board');
+                        document.querySelectorAll('.board-selector button[data-board]').forEach(function(b) { b.classList.remove('active'); });
+                        this.classList.add('active');
+                        document.getElementById('board-label').textContent = key.replace(/_/g, ' ').replace(/\\b\\w/g, function(c) { return c.toUpperCase(); });
+                        renderBoard(exampleBoards[key]);
+                        var result = isValidSudoku(exampleBoards[key]);
+                        document.getElementById('result-box').className = result.valid ? 'valid' : 'invalid';
+                        document.getElementById('result-status').textContent = result.valid ? 'VALID' : 'INVALID';
+                        document.getElementById('result-message').textContent = result.message;
+                    });
+                });
 
-        for i, j in starts:
-            s = set()
-            for row in range(i, i+3):
-                for col in range(j, j+3):
-                    item = board[row][col]
-                    if item in s:
-                        return False
-                    elif item != '.':
-                        s.add(item)
-        return True
-
-# Time Complexity: O(n^2)
-# Space Complexity: O(n)</pre>
-            </div>
+                updateResult();
+            })();
+            </script>
         </body>
         </html>
     """
@@ -681,60 +557,64 @@ THREADING_STYLE = """
 
 
 def app2(request):
-    """Application 2: Multi-Threaded Programming — rendered server-side in Python."""
-    # Build table of contents
-    toc_html = ""
-    for topic_id, topic in MULTITHREADING_DATA.items():
-        toc_html += f'<a href="#{topic_id}">{topic["title"]}</a> '
-
-    # Build all topic sections
-    topics_html = ""
-    for topic_id, topic in MULTITHREADING_DATA.items():
-        # Key concepts as badges
-        concepts = ""
-        for c in topic['key_concepts']:
-            concepts += f"<span>{c}</span> "
-
-        # Content sub-sections
-        content_html = ""
-        for section in topic['content']:
-            content_html += f"""
-                <div class="subsection">
-                    <h4>{section['subtitle']}</h4>
-                    <p>{section['text']}</p>
-                </div>
-            """
-
-        topics_html += f"""
-            <div class="topic" id="{topic_id}">
-                <h2>{topic['title']}</h2>
-                <p>{topic['description']}</p>
-                <div class="key-concepts">
-                    <strong>Key Concepts:</strong><br>
-                    {concepts}
-                </div>
-                {content_html}
-            </div>
-        """
-
-    html = f"""
+    """Application 2: Multi-Threaded Programming"""
+    data_json = json.dumps(MULTITHREADING_DATA)
+    # Escape </script> in JSON so it doesn't break the script tag
+    data_json_escaped = data_json.replace("</", "<\\/")
+    html = """
         <!DOCTYPE html>
         <html>
         <head>
             <title>Multi-Threaded Programming - Juan Pablo Sanchez</title>
-            {THREADING_STYLE}
+            """ + THREADING_STYLE + """
         </head>
         <body>
             <p><a href="/juan_pablo/">Back to Home</a></p>
             <h1>Multi-Threaded Programming</h1>
             <p>Understanding concurrency, synchronization, and parallel execution in software</p>
 
-            <div class="toc">
-                <strong>Topics:</strong><br>
-                {toc_html}
-            </div>
+            <div class="toc" id="toc"><strong>Topics:</strong><br></div>
+            <div id="topics"></div>
 
-            {topics_html}
+            <script>
+            (function() {
+                var data = """ + data_json_escaped + """;
+                var toc = document.getElementById('toc');
+                var topicsEl = document.getElementById('topics');
+                for (var topicId in data) {
+                    if (!data.hasOwnProperty(topicId)) continue;
+                    var topic = data[topicId];
+                    var a = document.createElement('a');
+                    a.href = '#' + topicId;
+                    a.textContent = topic.title;
+                    toc.appendChild(a);
+                    toc.appendChild(document.createTextNode(' '));
+
+                    var div = document.createElement('div');
+                    div.className = 'topic';
+                    div.id = topicId;
+                    div.innerHTML = '<h2>' + topic.title + '</h2><p>' + topic.description + '</p>';
+                    var conceptsDiv = document.createElement('div');
+                    conceptsDiv.className = 'key-concepts';
+                    conceptsDiv.innerHTML = '<strong>Key Concepts:</strong><br>';
+                    for (var k = 0; k < topic.key_concepts.length; k++) {
+                        var span = document.createElement('span');
+                        span.textContent = topic.key_concepts[k];
+                        conceptsDiv.appendChild(span);
+                        conceptsDiv.appendChild(document.createTextNode(' '));
+                    }
+                    div.appendChild(conceptsDiv);
+                    for (var c = 0; c < topic.content.length; c++) {
+                        var sec = topic.content[c];
+                        var sub = document.createElement('div');
+                        sub.className = 'subsection';
+                        sub.innerHTML = '<h4>' + sec.subtitle + '</h4><p>' + sec.text + '</p>';
+                        div.appendChild(sub);
+                    }
+                    topicsEl.appendChild(div);
+                }
+            })();
+            </script>
         </body>
         </html>
     """
@@ -766,102 +646,15 @@ GRAPHENE_STYLE = """
 
 
 def app3(request):
-    """Application 3: Graphene Presentation — rendered server-side in Python."""
-    sorted_sections = sorted(GRAPHENE_DATA.items(), key=lambda x: x[1]['order'])
-
-    # Build table of contents
-    toc_html = ""
-    for section_id, section in sorted_sections:
-        toc_html += f'<a href="#{section_id}">{section["order"]}. {section["title"]}</a> '
-
-    # Build all sections
-    sections_html = ""
-    for section_id, section in sorted_sections:
-        # Main content paragraphs
-        content_paragraphs = ""
-        for para in section['content'].split('\n\n'):
-            if para.strip():
-                content_paragraphs += f"<p>{para.strip()}</p>"
-
-        # Section-specific extra content
-        extra_html = ""
-
-        # Key properties (what-is section)
-        if 'key_properties' in section:
-            props = ""
-            for p in section['key_properties']:
-                props += f"<li>{p}</li>"
-            extra_html += f'<h3>Key Properties</h3><ul class="props">{props}</ul>'
-
-        # Categories (applications section)
-        if 'categories' in section:
-            cats_html = ""
-            for cat in section['categories']:
-                items = ""
-                for item in cat['items']:
-                    items += f"<li>{item}</li>"
-                cats_html += f'<div class="category"><h4>{cat["name"]}</h4><ul>{items}</ul></div>'
-            extra_html += f"<h3>Applications by Category</h3>{cats_html}"
-
-        # Types table (types section)
-        if 'types_table' in section:
-            rows = ""
-            for t in section['types_table']:
-                rows += f"<tr><td><strong>{t['name']}</strong></td><td>{t['price']}</td><td>{t['use_cases']}</td></tr>"
-            extra_html += f"""
-                <h3>Types and Pricing</h3>
-                <table>
-                    <thead><tr><th>Type</th><th>Price Range</th><th>Use Cases</th></tr></thead>
-                    <tbody>{rows}</tbody>
-                </table>
-            """
-
-        # Methods (production section)
-        if 'methods' in section:
-            methods_html = ""
-            for m in section['methods']:
-                methods_html += f"""
-                    <div class="method">
-                        <h4>{m['name']}</h4>
-                        <p>{m['description']}</p>
-                        <ul>
-                            <li><strong>Quality:</strong> {m['quality']}</li>
-                            <li><strong>Scalability:</strong> {m['scalability']}</li>
-                            <li><strong>Setup Cost:</strong> {m['cost']}</li>
-                            <li><strong>Output:</strong> {m['output']}</li>
-                        </ul>
-                    </div>
-                """
-            extra_html += f"<h3>Production Methods Comparison</h3>{methods_html}"
-
-        # Barriers (adoption section)
-        if 'barriers' in section:
-            barriers_html = ""
-            for b in section['barriers']:
-                barriers_html += f'<div class="barrier"><h4>{b["title"]}</h4><p>{b["description"]}</p></div>'
-            extra_html += f"<h3>Adoption Barriers</h3>{barriers_html}"
-
-        # Why start now (adoption section)
-        if 'why_start_now' in section:
-            reasons = ""
-            for r in section['why_start_now']:
-                reasons += f"<li>{r}</li>"
-            extra_html += f"<h3>Why Start Now?</h3><ul>{reasons}</ul>"
-
-        sections_html += f"""
-            <div class="section" id="{section_id}">
-                <h2>{section['order']}. {section['title']}</h2>
-                {content_paragraphs}
-                {extra_html}
-            </div>
-        """
-
-    html = f"""
+    """Application 3: Graphene Presentation"""
+    data_json = json.dumps(GRAPHENE_DATA)
+    data_json_escaped = data_json.replace("</", "<\\/")
+    html = """
         <!DOCTYPE html>
         <html>
         <head>
             <title>Graphene Presentation - Juan Pablo Sanchez</title>
-            {GRAPHENE_STYLE}
+            """ + GRAPHENE_STYLE + """
         </head>
         <body>
             <p><a href="/juan_pablo/">Back to Home</a></p>
@@ -874,12 +667,134 @@ def app3(request):
                 <span>1 atom thick</span>
             </div>
 
-            <div class="toc">
-                <strong>Sections:</strong><br>
-                {toc_html}
-            </div>
+            <div class="toc" id="toc"><strong>Sections:</strong><br></div>
+            <div id="sections"></div>
 
-            {sections_html}
+            <script>
+            (function() {
+                var data = """ + data_json_escaped + """;
+                var keys = Object.keys(data);
+                keys.sort(function(a, b) { return data[a].order - data[b].order; });
+
+                var toc = document.getElementById('toc');
+                var sectionsEl = document.getElementById('sections');
+
+                for (var i = 0; i < keys.length; i++) {
+                    var sectionId = keys[i];
+                    var section = data[sectionId];
+                    var a = document.createElement('a');
+                    a.href = '#' + sectionId;
+                    a.textContent = section.order + '. ' + section.title;
+                    toc.appendChild(a);
+                    toc.appendChild(document.createTextNode(' '));
+
+                    var div = document.createElement('div');
+                    div.className = 'section';
+                    div.id = sectionId;
+                    div.innerHTML = '<h2>' + section.order + '. ' + section.title + '</h2>';
+
+                    var paras = section.content.split(/\\n\\n/);
+                    for (var p = 0; p < paras.length; p++) {
+                        if (paras[p].trim()) {
+                            var paraEl = document.createElement('p');
+                            paraEl.textContent = paras[p].trim();
+                            div.appendChild(paraEl);
+                        }
+                    }
+
+                    if (section.key_properties) {
+                        var h3 = document.createElement('h3');
+                        h3.textContent = 'Key Properties';
+                        div.appendChild(h3);
+                        var ul = document.createElement('ul');
+                        ul.className = 'props';
+                        for (var k = 0; k < section.key_properties.length; k++) {
+                            var li = document.createElement('li');
+                            li.textContent = section.key_properties[k];
+                            ul.appendChild(li);
+                        }
+                        div.appendChild(ul);
+                    }
+
+                    if (section.categories) {
+                        var catH3 = document.createElement('h3');
+                        catH3.textContent = 'Applications by Category';
+                        div.appendChild(catH3);
+                        for (var c = 0; c < section.categories.length; c++) {
+                            var cat = section.categories[c];
+                            var catDiv = document.createElement('div');
+                            catDiv.className = 'category';
+                            catDiv.innerHTML = '<h4>' + cat.name + '</h4>';
+                            var catUl = document.createElement('ul');
+                            for (var it = 0; it < cat.items.length; it++) {
+                                var catLi = document.createElement('li');
+                                catLi.textContent = cat.items[it];
+                                catUl.appendChild(catLi);
+                            }
+                            catDiv.appendChild(catUl);
+                            div.appendChild(catDiv);
+                        }
+                    }
+
+                    if (section.types_table) {
+                        var th3 = document.createElement('h3');
+                        th3.textContent = 'Types and Pricing';
+                        div.appendChild(th3);
+                        var table = document.createElement('table');
+                        table.innerHTML = '<thead><tr><th>Type</th><th>Price Range</th><th>Use Cases</th></tr></thead><tbody></tbody>';
+                        var tbody = table.querySelector('tbody');
+                        for (var t = 0; t < section.types_table.length; t++) {
+                            var row = section.types_table[t];
+                            var tr = document.createElement('tr');
+                            tr.innerHTML = '<td><strong>' + row.name + '</strong></td><td>' + row.price + '</td><td>' + row.use_cases + '</td>';
+                            tbody.appendChild(tr);
+                        }
+                        div.appendChild(table);
+                    }
+
+                    if (section.methods) {
+                        var mH3 = document.createElement('h3');
+                        mH3.textContent = 'Production Methods Comparison';
+                        div.appendChild(mH3);
+                        for (var m = 0; m < section.methods.length; m++) {
+                            var method = section.methods[m];
+                            var mDiv = document.createElement('div');
+                            mDiv.className = 'method';
+                            mDiv.innerHTML = '<h4>' + method.name + '</h4><p>' + method.description + '</p><ul><li><strong>Quality:</strong> ' + method.quality + '</li><li><strong>Scalability:</strong> ' + method.scalability + '</li><li><strong>Setup Cost:</strong> ' + method.cost + '</li><li><strong>Output:</strong> ' + method.output + '</li></ul>';
+                            div.appendChild(mDiv);
+                        }
+                    }
+
+                    if (section.barriers) {
+                        var bH3 = document.createElement('h3');
+                        bH3.textContent = 'Adoption Barriers';
+                        div.appendChild(bH3);
+                        for (var b = 0; b < section.barriers.length; b++) {
+                            var barrier = section.barriers[b];
+                            var bDiv = document.createElement('div');
+                            bDiv.className = 'barrier';
+                            bDiv.innerHTML = '<h4>' + barrier.title + '</h4><p>' + barrier.description + '</p>';
+                            div.appendChild(bDiv);
+                        }
+                    }
+
+                    if (section.why_start_now) {
+                        var wH3 = document.createElement('h3');
+                        wH3.textContent = 'Why Start Now?';
+                        div.appendChild(wH3);
+                        var wUl = document.createElement('ul');
+                        for (var w = 0; w < section.why_start_now.length; w++) {
+                            var li = document.createElement('li');
+                            li.textContent = section.why_start_now[w];
+                            wUl.appendChild(li);
+                        }
+                        div.appendChild(wUl);
+                    }
+
+                    sectionsEl.appendChild(div);
+                }
+            })();
+            </script>
         </body>
         </html>
     """
