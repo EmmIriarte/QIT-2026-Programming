@@ -1,0 +1,144 @@
+{% extends 'calculator/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Schmidt Rank Calculator - Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="quantum-bg mb-4">
+            <div class="text-center mb-4">
+                <h1 class="display-4 fw-bold mb-3">Schmidt Rank Calculator</h1>
+                <p class="lead text-muted">
+                    Calculate Schmidt rank and decomposition of bipartite quantum states
+                </p>
+            </div>
+            
+            <!-- Calculator Form -->
+            <div class="card">
+                <div class="card-body p-4">
+                    <!-- Instructions -->
+                    <div class="alert alert-info mb-4">
+                        <h6 class="alert-heading"><i class="bi bi-info-circle-fill me-2"></i>How to use:</h6>
+                        <ol class="mb-0 small">
+                            <li><strong>Manual Input:</strong> Enter your state vector (e.g., "1, 0, 0, 1")</li>
+                            <li><strong>Predefined State:</strong> Choose from well-known quantum states (Bell, Product, etc.)</li>
+                            <li><strong>Random State:</strong> Generate a random quantum state with optional target rank</li>
+                        </ol>
+                    </div>
+                    
+                    <form method="post" id="calculator-form">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-calculator-fill me-2"></i>
+                                Calculate Schmidt Rank
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Info -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-diagram-3 fs-1 text-primary"></i>
+                        <h5 class="mt-2">Schmidt Rank</h5>
+                        <p class="small text-muted mb-0">
+                            Number of non-zero Schmidt coefficients
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-link-45deg fs-1 text-danger"></i>
+                        <h5 class="mt-2">Entanglement</h5>
+                        <p class="small text-muted mb-0">
+                            Rank > 1 means entangled state
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-calculator fs-1 text-success"></i>
+                        <h5 class="mt-2">SVD Method</h5>
+                        <p class="small text-muted mb-0">
+                            Using singular value decomposition
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Calculations -->
+        {% if recent_calculations %}
+        <div class="quantum-bg">
+            <h4 class="mb-3"><i class="bi bi-clock-history"></i> Recent Calculations</h4>
+            <div class="list-group">
+                {% for calc in recent_calculations %}
+                <a href="{% url 'result' calc.pk %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ calc.state_name|default:"Calculation"|truncatewords:5 }}</h6>
+                            <small class="text-muted">
+                                Dimensions: {{ calc.dimension_a }}×{{ calc.dimension_b }} | 
+                                Rank: {{ calc.schmidt_rank }}
+                            </small>
+                        </div>
+                        <div>
+                            {% if calc.is_entangled %}
+                                <span class="badge bg-danger">Entangled</span>
+                            {% else %}
+                                <span class="badge bg-success">Product</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            <div class="text-center mt-3">
+                <a href="{% url 'history' %}" class="btn btn-outline-primary">
+                    View All History <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Toggle input method visibility
+document.addEventListener('DOMContentLoaded', function() {
+    const inputMethodRadios = document.querySelectorAll('input[name="input_method"]');
+    const manualDiv = document.getElementById('manual-input');
+    const predefinedDiv = document.getElementById('predefined-input');
+    const randomDiv = document.getElementById('random-input');
+    
+    function updateVisibility() {
+        const selectedMethod = document.querySelector('input[name="input_method"]:checked').value;
+        
+        manualDiv.style.display = selectedMethod === 'manual' ? 'block' : 'none';
+        predefinedDiv.style.display = selectedMethod === 'predefined' ? 'block' : 'none';
+        randomDiv.style.display = selectedMethod === 'random' ? 'block' : 'none';
+    }
+    
+    inputMethodRadios.forEach(radio => {
+        radio.addEventListener('change', updateVisibility);
+    });
+    
+    updateVisibility();
+});
+</script>
+{% endblock %}

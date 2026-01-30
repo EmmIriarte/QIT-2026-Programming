@@ -1,0 +1,109 @@
+{% extends 'calculator/base.html' %}
+
+{% block title %}About Schmidt Rank{% endblock %}
+
+{% block content %}
+<div class="quantum-bg">
+    <h2 class="mb-4"><i class="bi bi-info-circle"></i> About Schmidt Rank</h2>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4>What is Schmidt Rank?</h4>
+            <p>
+                The <strong>Schmidt rank</strong> is a fundamental measure in quantum information theory 
+                that quantifies the entanglement of a bipartite quantum state.
+            </p>
+            <p>
+                For a pure state |ψ⟩ in a bipartite Hilbert space H_A ⊗ H_B, the Schmidt decomposition is:
+            </p>
+            <div class="alert alert-light text-center">
+                <strong>|ψ⟩ = Σᵢ λᵢ |iᴬ⟩ ⊗ |iᴮ⟩</strong>
+            </div>
+            <p>Where:</p>
+            <ul>
+                <li><strong>λᵢ</strong> are Schmidt coefficients (non-negative real numbers)</li>
+                <li><strong>|iᴬ⟩</strong> and <strong>|iᴮ⟩</strong> are orthonormal bases</li>
+                <li><strong>Schmidt rank</strong> = number of non-zero λᵢ</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Product States</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Schmidt Rank = 1</strong></p>
+                    <p>State can be written as:</p>
+                    <div class="alert alert-light">|ψ⟩ = |a⟩ ⊗ |b⟩</div>
+                    <p><strong>Examples:</strong></p>
+                    <ul>
+                        <li>|0⟩ ⊗ |0⟩</li>
+                        <li>|+⟩ ⊗ |+⟩</li>
+                    </ul>
+                    <p class="text-success"><strong>NOT entangled</strong></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Entangled States</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Schmidt Rank > 1</strong></p>
+                    <p>Cannot be written as product state</p>
+                    <p><strong>Examples:</strong></p>
+                    <ul>
+                        <li>Bell States (rank = 2)</li>
+                        <li>|Φ+⟩ = (|00⟩ + |11⟩)/√2</li>
+                        <li>Partially entangled: 0.8|00⟩ + 0.6|11⟩</li>
+                    </ul>
+                    <p class="text-danger"><strong>ENTANGLED</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Mathematical Method</h5>
+        </div>
+        <div class="card-body">
+            <p>This calculator uses <strong>Singular Value Decomposition (SVD)</strong>:</p>
+            <ol>
+                <li>Reshape state vector into matrix form (dim_A × dim_B)</li>
+                <li>Apply SVD: A = U Σ V†</li>
+                <li>Schmidt coefficients = singular values (diagonal of Σ)</li>
+                <li>Schmidt rank = number of non-zero singular values</li>
+            </ol>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Von Neumann Entropy</h5>
+        </div>
+        <div class="card-body">
+            <p>The entropy is calculated as:</p>
+            <div class="alert alert-light text-center">
+                <strong>S = -Σᵢ λᵢ² log₂(λᵢ²)</strong>
+            </div>
+            <ul>
+                <li>S = 0 for product states</li>
+                <li>S > 0 for entangled states</li>
+                <li>S = log₂(d) for maximally entangled states (d = dimension)</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <a href="{% url 'home' %}" class="btn btn-primary">
+            <i class="bi bi-calculator"></i> Try the Calculator
+        </a>
+    </div>
+</div>
+{% endblock %}
