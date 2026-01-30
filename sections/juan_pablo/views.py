@@ -451,7 +451,7 @@ SUDOKU_STYLE = """
 
 
 def app1(request):
-    """Application 1: Sudoku Validator."""
+    """Application 1: Sudoku Validator — validated server-side in Python."""
     board_type = request.GET.get('board', 'valid')
     if board_type not in EXAMPLE_BOARDS:
         board_type = 'valid'
@@ -681,7 +681,7 @@ THREADING_STYLE = """
 
 
 def app2(request):
-    """Application 2: Multi-Threaded Programming."""
+    """Application 2: Multi-Threaded Programming — rendered server-side in Python."""
     # Build table of contents
     toc_html = ""
     for topic_id, topic in MULTITHREADING_DATA.items():
@@ -766,7 +766,7 @@ GRAPHENE_STYLE = """
 
 
 def app3(request):
-    """Application 3: Graphene Presentation."""
+    """Application 3: Graphene Presentation — rendered server-side in Python."""
     sorted_sections = sorted(GRAPHENE_DATA.items(), key=lambda x: x[1]['order'])
 
     # Build table of contents
