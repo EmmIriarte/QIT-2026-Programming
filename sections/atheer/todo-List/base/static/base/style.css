@@ -1,0 +1,122 @@
+/* Reset */
+* {
+    box-sizing: border-box;
+    font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+/*  background */
+body {
+    background: #f0f2f5;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+/* Login/Register card */
+.container {
+    width: 380px;
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+
+/* Title */
+h1 {
+    text-align: center;
+    color: #1877f2;
+    font-size: 26px;
+    margin-bottom: 20px;
+}
+
+/* Form inputs */
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+/* Focus effect */
+input:focus {
+    outline: none;
+    border-color: #1877f2;
+    box-shadow: 0 0 0 1px #1877f2;
+}
+
+/* Buttons */
+input[type="submit"] {
+    width: 100%;
+    background: #1877f2;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+input[type="submit"]:hover {
+    background: #166fe5;
+}
+
+/* Links */
+p {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+a {
+    color: #1877f2;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Center the container itself (optional, only if you want table in middle of page) */
+.container {
+    max-width: 600px;        /* set a reasonable width */
+    margin: 50px auto;       /* top/bottom 50px, horizontally centered */
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+}
+
+/* Table styles */
+table {
+    width: 100%;             /* full width inside container */
+    border-collapse: collapse;
+    text-align: center;      /* center text inside cells */
+    margin: 0 auto;          /* center table horizontally */
+}
+
+th, td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Hover effect */
+tr:hover {
+    background: #f1f1f1;
+}
+
+/* Action links spacing */
+.task-actions a {
+    margin: 0 5px;
+    text-decoration: none;
+    color: #1877f2;
+}
+
+.task-actions a:hover {
+    text-decoration: underline;
+}
