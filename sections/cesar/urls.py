@@ -1,4 +1,7 @@
-from django.urls import path
+from django.urls import path, include
 
-# TODO: Student will implement their views here
-urlpatterns = []
+urlpatterns = [
+    path('app1/', include('sections.cesar.app1.urls')),
+    path('app2/', include('sections.cesar.app2.urls')),
+    path('app3/', include('sections.cesar.app3.urls')),
+]
