@@ -1,0 +1,202 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Statistics - Study Planner{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="display-5 fw-bold">Academic Statistics</h1>
+    <p class="text-muted">Track your academic performance</p>
+</div>
+
+<!-- Overall GPA Card -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h6 class="text-muted mb-2">Overall GPA</h6>
+                <h1 class="display-3 fw-bold text-primary">
+                    {% if overall_gpa %}
+                        {{ overall_gpa }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </h1>
+                <p class="text-muted">out of 5.0 (Polish scale)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Programs Statistics -->
+{% if programs_stats %}
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-mortarboard"></i> Performance by Program</h5>
+    </div>
+    <div class="card-body">
+        {% for stat in programs_stats %}
+        <div class="mb-4 {% if not forloop.last %}border-bottom pb-4{% endif %}">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <h6 class="mb-1">{{ stat.program.name }}</h6>
+                    <small class="text-muted">{{ stat.program.university }}</small>
+                </div>
+                <div class="col-md-2 text-center">
+                    <div class="mb-1">
+                        <strong class="fs-4" style="color: {{ stat.program.color }};">
+                            {% if stat.avg_grade %}{{ stat.avg_grade }}{% else %}N/A{% endif %}
+                        </strong>
+                    </div>
+                    <small class="text-muted">Average Grade</small>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="mb-1">
+                        <strong>{{ stat.earned_ects }}/{{ stat.program.total_ects_required }}</strong>
+                    </div>
+                    <small class="text-muted">ECTS Credits</small>
+                </div>
+                <div class="col-md-3">
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ stat.progress_percentage }}%; background-color: {{ stat.program.color }};"
+                             aria-valuenow="{{ stat.progress_percentage }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ stat.progress_percentage }}%
+                        </div>
+                    </div>
+                    <small class="text-muted d-block text-center mt-1">
+                        {{ stat.remaining_ects }} ECTS remaining
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Grade Distribution -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Grade Distribution</h5>
+    </div>
+    <div class="card-body">
+        <canvas id="gradeChart" height="100"></canvas>
+    </div>
+</div>
+
+<!-- Academic Progress Timeline -->
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Progress Overview</h5>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            {% if programs_stats %}
+                {% for stat in programs_stats %}
+                <div class="col-md-4 mb-3">
+                    <div class="border rounded p-3" style="border-color: {{ stat.program.color }} !important; border-width: 2px !important;">
+                        <h6 class="mb-2" style="color: {{ stat.program.color }};">
+                            {{ stat.program.name|truncatewords:3 }}
+                        </h6>
+                        <div class="mb-2">
+                            <i class="bi bi-star-fill fs-4" style="color: {{ stat.program.color }};"></i>
+                        </div>
+                        <div class="mb-1">
+                            <strong class="fs-5">
+                                {% if stat.avg_grade %}{{ stat.avg_grade }}{% else %}N/A{% endif %}
+                            </strong>
+                            <small class="text-muted d-block">Average</small>
+                        </div>
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar" 
+                                 style="width: {{ stat.progress_percentage }}%; background-color: {{ stat.program.color }};"
+                                 role="progressbar">
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            {{ stat.progress_percentage }}% Complete
+                        </small>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <p class="mt-3 text-muted">No data available yet. Start adding grades to see statistics!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Grade Distribution Chart
+    const gradeCtx = document.getElementById('gradeChart');
+    
+    if (gradeCtx) {
+        const gradeData = {{ grade_distribution|safe }};
+        
+        new Chart(gradeCtx, {
+            type: 'bar',
+            data: {
+                labels: ['5.0 (Excellent)', '4.5 (Very Good+)', '4.0 (Very Good)', '3.5 (Good+)', '3.0 (Good)', '<3.0 (Pass)'],
+                datasets: [{
+                    label: 'Number of Grades',
+                    data: [
+                        gradeData['5.0'] || 0,
+                        gradeData['4.5'] || 0,
+                        gradeData['4.0'] || 0,
+                        gradeData['3.5'] || 0,
+                        gradeData['3.0'] || 0,
+                        gradeData['<3.0'] || 0
+                    ],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',  // Green for 5.0
+                        'rgba(52, 211, 153, 0.8)',  // Light green for 4.5
+                        'rgba(59, 130, 246, 0.8)',  // Blue for 4.0
+                        'rgba(139, 92, 246, 0.8)',  // Purple for 3.5
+                        'rgba(245, 158, 11, 0.8)',  // Orange for 3.0
+                        'rgba(239, 68, 68, 0.8)'    // Red for <3.0
+                    ],
+                    borderColor: [
+                        'rgb(16, 185, 129)',
+                        'rgb(52, 211, 153)',
+                        'rgb(59, 130, 246)',
+                        'rgb(139, 92, 246)',
+                        'rgb(245, 158, 11)',
+                        'rgb(239, 68, 68)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribution of Your Grades'
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

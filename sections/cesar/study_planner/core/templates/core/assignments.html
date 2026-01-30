@@ -1,0 +1,154 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Assignments - Study Planner{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="display-5 fw-bold">Assignments</h1>
+    <p class="text-muted">Manage all your course assignments</p>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select" onchange="this.form.submit()">
+                    <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="overdue" {% if selected_status == 'overdue' %}selected{% endif %}>Overdue</option>
+                    <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="program" class="form-label">Program</label>
+                <select name="program" id="program" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Programs</option>
+                    {% for program in programs %}
+                    <option value="{{ program.id }}" {% if selected_program == program.id|slugify %}selected{% endif %}>
+                        {{ program.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <a href="{% url 'assignments' %}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-arrow-clockwise"></i> Reset Filters
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Assignments List -->
+{% if assignments %}
+<div class="row">
+    {% for assignment in assignments %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="card-title mb-0">{{ assignment.title }}</h5>
+                    {% if assignment.is_completed %}
+                    <span class="badge bg-success">
+                        <i class="bi bi-check-circle"></i> Done
+                    </span>
+                    {% elif assignment.days_until_due < 0 %}
+                    <span class="badge bg-danger">
+                        <i class="bi bi-exclamation-triangle"></i> Overdue
+                    </span>
+                    {% elif assignment.days_until_due == 0 %}
+                    <span class="badge bg-warning">
+                        <i class="bi bi-clock"></i> Today
+                    </span>
+                    {% else %}
+                    <span class="badge bg-info">
+                        <i class="bi bi-calendar"></i> {{ assignment.days_until_due }} days
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <span class="badge" style="background-color: {{ assignment.course.program.color }};">
+                        {{ assignment.course.program.name|truncatewords:2 }}
+                    </span>
+                    <small class="text-muted ms-2">{{ assignment.course.code }}</small>
+                </div>
+                
+                {% if assignment.description %}
+                <p class="card-text text-muted small">{{ assignment.description|truncatewords:15 }}</p>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <small class="text-muted">
+                        <i class="bi bi-calendar3"></i> {{ assignment.due_date|date:"M d, Y" }}
+                    </small>
+                    {% if assignment.weight %}
+                    <small class="text-muted">
+                        <i class="bi bi-star"></i> {{ assignment.weight }}% weight
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted"></i>
+        <h5 class="mt-3">No assignments found</h5>
+        <p class="text-muted">
+            {% if selected_status == 'pending' %}
+            You have no pending assignments. Great work!
+            {% elif selected_status == 'completed' %}
+            You haven't completed any assignments yet.
+            {% elif selected_status == 'overdue' %}
+            You have no overdue assignments!
+            {% else %}
+            No assignments available.
+            {% endif %}
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Summary Statistics -->
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Summary</h5>
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="mb-2">
+                    <i class="bi bi-list-task fs-2 text-primary"></i>
+                </div>
+                <h4>{{ assignments|length }}</h4>
+                <small class="text-muted">Total Shown</small>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-2">
+                    <i class="bi bi-check-circle fs-2 text-success"></i>
+                </div>
+                <h4>{{ assignments|length }}</h4>
+                <small class="text-muted">Displayed</small>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-2">
+                    <i class="bi bi-clock fs-2 text-warning"></i>
+                </div>
+                <h4>-</h4>
+                <small class="text-muted">Status</small>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-2">
+                    <i class="bi bi-calendar-x fs-2 text-danger"></i>
+                </div>
+                <h4>-</h4>
+                <small class="text-muted">Overview</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

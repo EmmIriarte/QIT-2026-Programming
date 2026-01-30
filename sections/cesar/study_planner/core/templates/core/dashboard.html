@@ -1,0 +1,266 @@
+{% extends 'core/base.html' %}
+
+
+{% block title %}Dashboard - Study Planner{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="display-5 fw-bold">Welcome back, {{ user.first_name|default:user.username }}!</h1>
+    <p class="text-muted">Here's your academic overview</p>
+</div>
+
+<!-- Overall Statistics -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-book-half fs-1 text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Total Courses</h6>
+                        <h3 class="mb-0">{{ total_courses }}</h3>
+                        <small class="text-success">{{ completed_courses }} completed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-star-fill fs-1 text-warning"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Overall GPA</h6>
+                        <h3 class="mb-0">
+                            {% if overall_gpa %}
+                                {{ overall_gpa }}/5.0
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </h3>
+                        <small class="text-muted">Polish scale</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-calendar-check fs-1 text-success"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Active Courses</h6>
+                        <h3 class="mb-0">{{ current_enrollments.count }}</h3>
+                        <small class="text-muted">This semester</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Programs Progress -->
+{% if programs_with_progress %}
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-mortarboard"></i> Programs Progress</h5>
+    </div>
+    <div class="card-body">
+        {% for item in programs_with_progress %}
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <h6 class="mb-0">{{ item.program.name }}</h6>
+                    <small class="text-muted">{{ item.program.university }}</small>
+                </div>
+                <span class="badge badge-custom" style="background-color: {{ item.program.color }};">
+                    {{ item.earned_ects }}/{{ item.total_ects }} ECTS
+                </span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" 
+                     style="width: {{ item.progress_percentage }}%; background-color: {{ item.program.color }};"
+                     aria-valuenow="{{ item.progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ item.progress_percentage }}%
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Upcoming Deadlines -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock"></i> Upcoming Deadlines</h5>
+                <a href="{% url 'assignments' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if upcoming_assignments %}
+                    <div class="list-group list-group-flush">
+                        {% for assignment in upcoming_assignments %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ assignment.title }}</h6>
+                                    <small class="text-muted">
+                                        <i class="bi bi-book"></i> {{ assignment.course.code }}
+                                        <span class="ms-2" style="color: {{ assignment.course.program.color }};">
+                                            [{{ assignment.course.program.name|truncatewords:2 }}]
+                                        </span>
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">
+                                        {{ assignment.due_date|date:"M d, Y" }}
+                                    </small>
+                                    {% with days=assignment.days_until_due %}
+                                    {% if days == 0 %}
+                                        <span class="badge bg-danger">Due Today!</span>
+                                    {% elif days == 1 %}
+                                        <span class="badge bg-warning">Tomorrow</span>
+                                    {% else %}
+                                        <span class="badge bg-info">{{ days }} days</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-check-circle fs-1"></i>
+                        <p class="mt-2">No upcoming deadlines in the next 7 days!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Overdue Assignments -->
+        {% if overdue_assignments %}
+        <div class="card mt-3">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Overdue Assignments</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for assignment in overdue_assignments %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1 text-danger">{{ assignment.title }}</h6>
+                                <small class="text-muted">{{ assignment.course.code }}</small>
+                            </div>
+                            <small class="text-danger">
+                                {% if assignment.days_until_due < 0 %}
+                                    {{ assignment.days_until_due|slice:"1:" }} days overdue
+                                {% else %}
+                                    {{ assignment.days_until_due }} days overdue
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Current Courses -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-journal-text"></i> Current Courses</h5>
+                <a href="{% url 'course_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if current_enrollments %}
+                    <div class="list-group list-group-flush">
+                        {% for enrollment in current_enrollments %}
+                        <a href="{% url 'course_detail' enrollment.id %}" 
+                           class="list-group-item list-group-item-action px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ enrollment.course.name }}</h6>
+                                    <div>
+                                        <span class="badge" style="background-color: {{ enrollment.course.program.color }};">
+                                            {{ enrollment.course.program.name|truncatewords:2 }}
+                                        </span>
+                                        <small class="text-muted ms-2">
+                                            {{ enrollment.course.ects }} ECTS
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    {% with grade=enrollment.calculate_final_grade %}
+                                    {% if grade %}
+                                        <div class="badge bg-success">
+                                            Grade: {{ grade }}
+                                        </div>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-1"></i>
+                        <p class="mt-2">No courses in progress</p>
+                        <small>Courses marked as "In Progress" will appear here</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-2">
+                <a href="{% url 'course_list' %}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-book"></i> View Courses
+                </a>
+            </div>
+            <div class="col-md-3 mb-2">
+                <a href="{% url 'assignments' %}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-calendar-check"></i> View Assignments
+                </a>
+            </div>
+            <div class="col-md-3 mb-2">
+                <a href="{% url 'statistics' %}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-graph-up"></i> View Statistics
+                </a>
+            </div>
+            {% if user.is_staff %}
+            <div class="col-md-3 mb-2">
+                <a href="/admin/" target="_blank" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-gear"></i> Admin Panel
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

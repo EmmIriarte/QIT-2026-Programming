@@ -1,0 +1,26 @@
+# Django and core dependencies
+Django==5.0.1
+python-decouple==3.8
+
+# Database
+psycopg2-binary==2.9.9  # PostgreSQL adapter (optional, for production)
+
+# For better admin interface
+django-crispy-forms==2.1
+crispy-bootstrap5==2024.2  # POPRAWIONA WERSJA (było 2.0.0)
+
+# For date/time handling
+python-dateutil==2.8.2
+
+# For data export
+openpyxl==3.1.2  # Excel export
+reportlab==4.0.9  # PDF generation
+
+# Development tools
+django-debug-toolbar==4.2.0  # Debug toolbar for development
+
+# Security
+django-cors-headers==4.3.1  # CORS headers
+
+# Utilities
+Pillow==10.2.0  # Image handling

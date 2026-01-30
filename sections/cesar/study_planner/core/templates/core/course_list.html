@@ -1,0 +1,183 @@
+{% extends 'core/base.html' %}
+
+{% block title %}My Courses - Study Planner{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="display-6 fw-bold">My Courses</h1>
+    <p class="text-muted">View and manage all your enrolled courses</p>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="program" class="form-label">Program</label>
+                <select name="program" id="program" class="form-select">
+                    <option value="">All Programs</option>
+                    {% for program in programs %}
+                    <option value="{{ program.id }}" {% if selected_program == program.id|stringformat:"s" %}selected{% endif %}>
+                        {{ program.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-4">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="planned" {% if selected_status == 'planned' %}selected{% endif %}>Planned</option>
+                    <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="dropped" {% if selected_status == 'dropped' %}selected{% endif %}>Dropped</option>
+                </select>
+            </div>
+            
+            <div class="col-md-4">
+                <label for="semester_type" class="form-label">Semester</label>
+                <select name="semester_type" id="semester_type" class="form-select">
+                    <option value="">All Semesters</option>
+                    <option value="winter" {% if selected_semester_type == 'winter' %}selected{% endif %}>Winter</option>
+                    <option value="summer" {% if selected_semester_type == 'summer' %}selected{% endif %}>Summer</option>
+                </select>
+            </div>
+            
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-filter"></i> Apply Filters
+                </button>
+                <a href="{% url 'course_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Course List -->
+{% if enrollments %}
+    <div class="row">
+        {% for enrollment in enrollments %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header" style="background-color: {{ enrollment.course.program.color }}; color: white;">
+                    <h6 class="mb-0">
+                        <i class="bi bi-book"></i> {{ enrollment.course.code }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ enrollment.course.name }}</h5>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted d-block">
+                            <i class="bi bi-building"></i> {{ enrollment.course.program.name|truncatewords:3 }}
+                        </small>
+                        <small class="text-muted d-block">
+                            <i class="bi bi-calendar"></i> {{ enrollment.course.semester }}
+                        </small>
+                        <small class="text-muted d-block">
+                            <i class="bi bi-award"></i> {{ enrollment.course.ects }} ECTS
+                        </small>
+                        {% if enrollment.course.instructor %}
+                        <small class="text-muted d-block">
+                            <i class="bi bi-person"></i> {{ enrollment.course.instructor }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {% if enrollment.status == 'in_progress' %}
+                            <span class="badge bg-primary">In Progress</span>
+                        {% elif enrollment.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% elif enrollment.status == 'planned' %}
+                            <span class="badge bg-info">Planned</span>
+                        {% elif enrollment.status == 'dropped' %}
+                            <span class="badge bg-secondary">Dropped</span>
+                        {% endif %}
+                        
+                        {% if enrollment.is_passed %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> Passed
+                            </span>
+                        {% endif %}
+                        
+                        {% with grade=enrollment.calculate_final_grade %}
+                        {% if grade %}
+                            <span class="badge bg-warning text-dark">
+                                Grade: {{ grade }}
+                            </span>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    
+                    {% if enrollment.course.description %}
+                    <p class="card-text small text-muted">
+                        {{ enrollment.course.description|truncatewords:20 }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white">
+                    <a href="{% url 'course_detail' enrollment.id %}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-eye"></i> View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Summary -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <h3 class="text-primary">{{ enrollments.count }}</h3>
+                    <p class="text-muted mb-0">Total Courses</p>
+                </div>
+                <div class="col-md-4">
+                    <h3 class="text-success">
+                        {% widthratio enrollments|length 1 enrollments|length %}
+                    </h3>
+                    <p class="text-muted mb-0">Shown with Filters</p>
+                </div>
+                <div class="col-md-4">
+                    <h3 class="text-info">
+                        {{ enrollments|length }}
+                    </h3>
+                    <p class="text-muted mb-0">In View</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+{% else %}
+    <!-- Empty State -->
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <h4 class="mt-3">No Courses Found</h4>
+            <p class="text-muted">
+                {% if selected_program or selected_status or selected_semester_type %}
+                    No courses match your filter criteria. Try adjusting your filters.
+                {% else %}
+                    You haven't enrolled in any courses yet. 
+                    <br>Add courses through the admin panel to get started!
+                {% endif %}
+            </p>
+            <div class="mt-3">
+                {% if user.is_staff %}
+                <a href="/admin/core/enrollment/add/" class="btn btn-primary" target="_blank">
+                    <i class="bi bi-plus-circle"></i> Add Course Enrollment
+                </a>
+                {% endif %}
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-house"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
