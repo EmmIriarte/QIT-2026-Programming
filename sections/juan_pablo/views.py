@@ -117,29 +117,6 @@ MULTITHREADING_DATA = {
         ],
         'key_concepts': ['Race Condition', 'Deadlock', 'Starvation', 'Livelock', 'Atomic Operation', 'Lock Ordering'],
     },
-    'patterns': {
-        'title': 'Multi-Threading Design Patterns',
-        'description': 'Design patterns provide proven solutions to common multi-threading challenges. These patterns help structure concurrent code to be correct, efficient, and maintainable.',
-        'content': [
-            {
-                'subtitle': 'Producer-Consumer Pattern',
-                'text': 'One or more producer threads generate data and place it in a shared buffer, while consumer threads take data from the buffer and process it. A bounded buffer (fixed-size queue) with proper synchronization prevents overflow and underflow. In Python, queue.Queue is a thread-safe implementation of this pattern. This pattern decouples data production from consumption.'
-            },
-            {
-                'subtitle': 'Thread Pool Pattern',
-                'text': 'Instead of creating a new thread for each task, a fixed pool of worker threads is created upfront. Tasks are submitted to a queue and the next available worker picks up a task. This avoids the overhead of thread creation/destruction and limits resource usage. In Python: concurrent.futures.ThreadPoolExecutor. Web servers like Apache use thread pools to handle HTTP requests.'
-            },
-            {
-                'subtitle': 'Reader-Writer Pattern',
-                'text': 'This pattern optimizes access when reads are far more frequent than writes. Multiple readers can access data simultaneously, but a writer needs exclusive access. Variations include reader-preference (readers never wait if no writer is active) and writer-preference (new readers wait if a writer is waiting). Used in database systems and caching layers.'
-            },
-            {
-                'subtitle': 'Fork-Join Pattern',
-                'text': 'A task is split (forked) into smaller subtasks that execute in parallel. Once all subtasks complete, their results are combined (joined). This is the foundation of divide-and-conquer parallelism. Example: parallel merge sort forks the array into halves, sorts each in a separate thread, then joins the results. Python concurrent.futures implement this pattern.'
-            },
-        ],
-        'key_concepts': ['Producer-Consumer', 'Thread Pool', 'Reader-Writer', 'Fork-Join', 'Bounded Buffer', 'Worker Threads'],
-    },
     'python': {
         'title': 'Multi-Threading in Python',
         'description': 'Python provides built-in modules for multi-threaded programming, but has unique characteristics due to the Global Interpreter Lock (GIL) that affect how threads execute.',
