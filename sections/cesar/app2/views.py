@@ -1,293 +1,85 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, logout
-from django.contrib import messages
-from django.db.models import Sum, Avg, Q, Count
-from django.utils import timezone
-from datetime import timedelta
-from .models import Program, Course, Enrollment, Assignment, Grade
+from django.http import HttpResponse
 
 
 def home(request):
-    """
-    Home page view - redirects to dashboard if logged in, 
-    otherwise shows welcome page.
-    """
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-    return render(request, 'core/home.html')
+    """Study Planner overview page."""
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Study Planner - Cesar</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; }
+            h1 { color: #2e7d32; }
+            h2 { color: #388e3c; }
+            .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+            .nav { margin-bottom: 20px; }
+            .nav a { margin-right: 15px; color: #2e7d32; text-decoration: none; }
+            .nav a:hover { text-decoration: underline; }
+            .feature { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 10px 0; border-radius: 0 8px 8px 0; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background: #e8f5e9; color: #2e7d32; }
+        </style>
+    </head>
+    <body>
+        <div class="nav">
+            <a href="/cesar/">&larr; Back to Cesar's Section</a>
+        </div>
 
+        <div class="card">
+            <h1>Study Planner</h1>
+            <p>A university study planning application designed to help students track their
+            academic progress, manage courses, and monitor ECTS credits across programs.</p>
+        </div>
 
-@login_required
-def dashboard(request):
-    """
-    Main dashboard view showing overview of all programs, 
-    courses, and upcoming deadlines.
-    """
-    user = request.user
-    
-    # Get all programs user is enrolled in
-    user_programs = Program.objects.filter(
-        courses__enrollments__user=user
-    ).distinct()
-    
-    # Calculate progress for each program
-    programs_with_progress = []
-    for program in user_programs:
-        earned_ects = program.get_total_ects_earned(user)
-        progress_percentage = program.get_progress_percentage(user)
-        programs_with_progress.append({
-            'program': program,
-            'earned_ects': earned_ects,
-            'total_ects': program.total_ects_required,
-            'progress_percentage': progress_percentage
-        })
-    
-    # Get current enrollments (in progress)
-    current_enrollments = Enrollment.objects.filter(
-        user=user,
-        status='in_progress'
-    ).select_related('course', 'course__program')
-    
-    # Get upcoming assignments (next 7 days)
-    today = timezone.now()
-    week_from_now = today + timedelta(days=7)
-    upcoming_assignments = Assignment.objects.filter(
-        course__enrollments__user=user,
-        is_completed=False,
-        due_date__range=[today, week_from_now]
-    ).select_related('course', 'course__program').order_by('due_date')[:10]
-    
-    # Get overdue assignments
-    overdue_assignments = Assignment.objects.filter(
-        course__enrollments__user=user,
-        is_completed=False,
-        due_date__lt=today
-    ).select_related('course', 'course__program').order_by('due_date')[:5]
-    
-    # Calculate overall statistics
-    total_courses = Enrollment.objects.filter(user=user).count()
-    completed_courses = Enrollment.objects.filter(
-        user=user, 
-        is_passed=True
-    ).count()
-    
-    # Calculate overall GPA
-    all_grades = Grade.objects.filter(
-        enrollment__user=user
-    )
-    if all_grades.exists():
-        overall_gpa = all_grades.aggregate(Avg('grade'))['grade__avg']
-    else:
-        overall_gpa = None
-    
-    context = {
-        'programs_with_progress': programs_with_progress,
-        'current_enrollments': current_enrollments,
-        'upcoming_assignments': upcoming_assignments,
-        'overdue_assignments': overdue_assignments,
-        'total_courses': total_courses,
-        'completed_courses': completed_courses,
-        'overall_gpa': round(overall_gpa, 2) if overall_gpa else None,
-    }
-    
-    return render(request, 'core/dashboard.html', context)
+        <div class="card">
+            <h2>Features</h2>
+            <div class="feature">
+                <strong>Program Progress Tracking</strong>
+                <p>Track ECTS credits earned across multiple academic programs with
+                percentage-based progress visualization.</p>
+            </div>
+            <div class="feature">
+                <strong>Course Management</strong>
+                <p>View and filter courses by program, status (in progress, completed, failed),
+                and semester type (winter/summer).</p>
+            </div>
+            <div class="feature">
+                <strong>Assignment Tracking</strong>
+                <p>Monitor upcoming and overdue assignments with deadline awareness.
+                Filter by status and program.</p>
+            </div>
+            <div class="feature">
+                <strong>Grade Statistics</strong>
+                <p>Calculate GPA per program and overall. View grade distribution
+                with detailed statistics.</p>
+            </div>
+        </div>
 
+        <div class="card">
+            <h2>Data Model</h2>
+            <table>
+                <tr><th>Model</th><th>Description</th><th>Key Fields</th></tr>
+                <tr><td>Program</td><td>Academic degree program</td><td>name, total_ects_required</td></tr>
+                <tr><td>Course</td><td>Individual course within a program</td><td>name, ects, semester_type</td></tr>
+                <tr><td>Enrollment</td><td>Student's enrollment in a course</td><td>status, is_passed</td></tr>
+                <tr><td>Assignment</td><td>Course assignment with deadline</td><td>title, due_date, is_completed</td></tr>
+                <tr><td>Grade</td><td>Grade received for an enrollment</td><td>grade (float), date</td></tr>
+            </table>
+        </div>
 
-@login_required
-def course_list(request):
+        <div class="card">
+            <h2>Technical Details</h2>
+            <ul>
+                <li>Built with Django's ORM for database management</li>
+                <li>Uses Django's authentication system for user-specific data</li>
+                <li>Implements filtering with Django's QuerySet API</li>
+                <li>Calculates statistics using Django's aggregation functions (Avg, Sum, Count)</li>
+                <li>Polish/European grading scale (2.0 - 5.0)</li>
+            </ul>
+        </div>
+    </body>
+    </html>
     """
-    Display all courses, with filtering options.
-    """
-    user = request.user
-    
-    # Get filter parameters
-    program_id = request.GET.get('program')
-    status = request.GET.get('status')
-    semester_type = request.GET.get('semester_type')
-    
-    # Base query - all user's enrollments
-    enrollments = Enrollment.objects.filter(
-        user=user
-    ).select_related('course', 'course__program')
-    
-    # Apply filters
-    if program_id:
-        enrollments = enrollments.filter(course__program_id=program_id)
-    if status:
-        enrollments = enrollments.filter(status=status)
-    if semester_type:
-        enrollments = enrollments.filter(course__semester_type=semester_type)
-    
-    # Get all programs for filter dropdown
-    programs = Program.objects.filter(
-        courses__enrollments__user=user
-    ).distinct()
-    
-    context = {
-        'enrollments': enrollments,
-        'programs': programs,
-        'selected_program': program_id,
-        'selected_status': status,
-        'selected_semester_type': semester_type,
-    }
-    
-    return render(request, 'core/course_list.html', context)
-
-
-@login_required
-def course_detail(request, enrollment_id):
-    """
-    Detailed view of a specific course enrollment.
-    Shows assignments, grades, and progress.
-    """
-    enrollment = get_object_or_404(
-        Enrollment.objects.select_related('course', 'course__program'),
-        id=enrollment_id,
-        user=request.user
-    )
-    
-    # Get all assignments for this course
-    assignments = Assignment.objects.filter(
-        course=enrollment.course
-    ).order_by('due_date')
-    
-    # Separate into pending and completed
-    pending_assignments = assignments.filter(is_completed=False)
-    completed_assignments = assignments.filter(is_completed=True)
-    
-    # Get all grades for this enrollment
-    grades = Grade.objects.filter(
-        enrollment=enrollment
-    ).select_related('assignment').order_by('-date')
-    
-    # Calculate final grade
-    final_grade = enrollment.calculate_final_grade()
-    
-    # Calculate completion percentage
-    completion_percentage = enrollment.get_completion_percentage()
-    
-    context = {
-        'enrollment': enrollment,
-        'course': enrollment.course,
-        'pending_assignments': pending_assignments,
-        'completed_assignments': completed_assignments,
-        'grades': grades,
-        'final_grade': final_grade,
-        'completion_percentage': completion_percentage,
-    }
-    
-    return render(request, 'core/course_detail.html', context)
-
-
-@login_required
-def assignments(request):
-    """
-    View all assignments across all courses.
-    """
-    user = request.user
-    
-    # Get filter parameters
-    status = request.GET.get('status', 'pending')  # Default to pending
-    program_id = request.GET.get('program')
-    
-    # Base query
-    assignments_query = Assignment.objects.filter(
-        course__enrollments__user=user
-    ).select_related('course', 'course__program')
-    
-    # Apply status filter
-    if status == 'pending':
-        assignments_query = assignments_query.filter(is_completed=False)
-    elif status == 'completed':
-        assignments_query = assignments_query.filter(is_completed=True)
-    elif status == 'overdue':
-        assignments_query = assignments_query.filter(
-            is_completed=False,
-            due_date__lt=timezone.now()
-        )
-    
-    # Apply program filter
-    if program_id:
-        assignments_query = assignments_query.filter(
-            course__program_id=program_id
-        )
-    
-    assignments_list = assignments_query.order_by('due_date')
-    
-    # Get programs for filter
-    programs = Program.objects.filter(
-        courses__enrollments__user=user
-    ).distinct()
-    
-    context = {
-        'assignments': assignments_list,
-        'programs': programs,
-        'selected_status': status,
-        'selected_program': program_id,
-    }
-    
-    return render(request, 'core/assignments.html', context)
-
-
-@login_required
-def statistics(request):
-    """
-    Display statistics and charts about academic progress.
-    """
-    user = request.user
-    
-    # Get all programs
-    programs = Program.objects.filter(
-        courses__enrollments__user=user
-    ).distinct()
-    
-    # Calculate GPA per program
-    programs_stats = []
-    for program in programs:
-        enrollments = Enrollment.objects.filter(
-            user=user,
-            course__program=program
-        )
-        
-        # Get all grades for this program
-        grades = Grade.objects.filter(
-            enrollment__in=enrollments
-        )
-        
-        if grades.exists():
-            avg_grade = grades.aggregate(Avg('grade'))['grade__avg']
-        else:
-            avg_grade = None
-        
-        earned_ects = program.get_total_ects_earned(user)
-        
-        programs_stats.append({
-            'program': program,
-            'avg_grade': round(avg_grade, 2) if avg_grade else None,
-            'earned_ects': earned_ects,
-            'remaining_ects': program.total_ects_required - earned_ects,
-            'progress_percentage': program.get_progress_percentage(user)
-        })
-    
-    # Overall statistics
-    all_grades = Grade.objects.filter(enrollment__user=user)
-    overall_gpa = all_grades.aggregate(Avg('grade'))['grade__avg']
-    
-    # Grade distribution
-    grade_distribution = {
-        '5.0': all_grades.filter(grade=5.0).count(),
-        '4.5': all_grades.filter(grade=4.5).count(),
-        '4.0': all_grades.filter(grade=4.0).count(),
-        '3.5': all_grades.filter(grade=3.5).count(),
-        '3.0': all_grades.filter(grade=3.0).count(),
-        '<3.0': all_grades.filter(grade__lt=3.0).count(),
-    }
-    
-    context = {
-        'programs_stats': programs_stats,
-        'overall_gpa': round(overall_gpa, 2) if overall_gpa else None,
-        'grade_distribution': grade_distribution,
-    }
-    
-    return render(request, 'core/statistics.html', context)
+    return HttpResponse(html)
