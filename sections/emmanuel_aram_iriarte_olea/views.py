@@ -1,4 +1,35 @@
+"""
+NOTE FOR FERNANDO: The inline JavaScript logic has been migrated to Python.
+All computation (longest palindromic substring, quantum gates, Fibonacci)
+now runs server-side. Forms submit via POST and the view returns the result.
+"""
+import math
+import time
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+
+
+def _expand_around_center(s: str, left: int, right: int) -> int:
+    """Expand from center while characters match. Returns length."""
+    while left >= 0 and right < len(s) and s[left] == s[right]:
+        left -= 1
+        right += 1
+    return right - left - 1
+
+
+def _longest_palindromic_substring(s: str) -> tuple[str, int, int]:
+    """Returns (substring, start_idx, length). Expand-around-center algorithm O(n²)."""
+    if not s:
+        return "", 0, 0
+    start, max_len = 0, 1
+    for i in range(len(s)):
+        len1 = _expand_around_center(s, i, i)
+        len2 = _expand_around_center(s, i, i + 1)
+        length = max(len1, len2)
+        if length > max_len:
+            max_len = length
+            start = i - (length - 1) // 2
+    return s[start : start + max_len], start, max_len
 
 
 def index(request):
@@ -26,27 +57,85 @@ def index(request):
     """)
 
 
+SQRT2 = math.sqrt(2)
+
+
+def _quantum_reset(initial: str) -> list[float]:
+    """Return initial quantum state [a00, a01, a10, a11]."""
+    states = {
+        "00": [1.0, 0.0, 0.0, 0.0],
+        "01": [0.0, 1.0, 0.0, 0.0],
+        "10": [0.0, 0.0, 1.0, 0.0],
+        "11": [0.0, 0.0, 0.0, 1.0],
+        "plus": [1 / SQRT2, 0.0, 1 / SQRT2, 0.0],
+    }
+    return states.get(initial, [1.0, 0.0, 0.0, 0.0])[:]
+
+
+def _quantum_apply_gate(state: list[float], gate: str) -> list[float]:
+    """Apply gate to state. Returns new state. Modifies in place for PauliZ."""
+    s = state
+    h = 1 / SQRT2
+    if gate == "CNOT":
+        return [s[0], s[1], s[3], s[2]]
+    if gate == "Hadamard":
+        return [
+            h * (s[0] + s[2]),
+            h * (s[1] + s[3]),
+            h * (s[0] - s[2]),
+            h * (s[1] - s[3]),
+        ]
+    if gate == "PauliX":
+        return [s[2], s[3], s[0], s[1]]
+    if gate == "PauliY":
+        return [-s[3], -s[2], s[1], s[0]]
+    if gate == "PauliZ":
+        return [s[0], s[1], -s[2], -s[3]]
+    return s[:]
+
+
+def _app1_result_html(input_val: str) -> str:
+    """Build result HTML for longest palindromic substring."""
+    if not input_val:
+        return '<div id="result" class="success" style="margin-top: 20px; padding: 15px; border-radius: 5px;"><strong>Error:</strong> Please enter a non-empty string.</div>'
+    longest, start, max_len = _longest_palindromic_substring(input_val)
+    visual_chars = [f'<span class="palindrome">{c}</span>' if start <= i < start + max_len else c for i, c in enumerate(input_val)]
+    visual_string = "".join(visual_chars)
+    return f'''<div id="result" class="success" style="margin-top: 20px; padding: 15px; border-radius: 5px; background: #d4edda; border: 1px solid #c3e6cb; color: #155724;">
+        <strong>Result:</strong> "{longest}"<br>
+        <strong>Length:</strong> {max_len}<br>
+        <strong>Input:</strong> "{input_val}"<br>
+        <div class="string-display">{visual_string}</div>
+        <strong>Algorithm:</strong> Expand around centers (O(n²) time, O(1) space) — computed in Python
+    </div>'''
+
+
+@csrf_exempt
 def app1(request):
-    """Application 1: LeetCode Longest Palindromic Substring Problem (Medium)."""
-    html = """
+    """Application 1: LeetCode Longest Palindromic Substring Problem (Medium).
+    Logic runs in Python (server-side) - no inline JS."""
+    input_val = "babad"
+    if request.method == "POST":
+        input_val = (request.POST.get("input_string") or "").strip() or "babad"
+    result_html = _app1_result_html(input_val)
+
+    html = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>Longest Palindromic Substring - LeetCode Medium Problem</title>
             <style>
-                body { font-family: Arial, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; }
-                .back-button { padding: 8px 15px; background: #666; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-bottom: 20px; }
-                .back-button:hover { background: #555; }
-                .problem { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
-                .example { background: #e8f4f8; padding: 10px; margin: 10px 0; border-left: 4px solid #2196F3; }
-                code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
-                input { padding: 8px; margin: 5px; width: 300px; }
-                button { padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
-                button:hover { background: #45a049; }
-                #result { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; }
-                .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
-                .palindrome { color: #FF6B6B; font-weight: bold; }
-                .string-display { font-family: monospace; font-size: 18px; padding: 15px; background: #f9f9f9; border-radius: 5px; margin: 15px 0; letter-spacing: 2px; }
+                body {{ font-family: Arial, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; }}
+                .back-button {{ padding: 8px 15px; background: #666; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-bottom: 20px; }}
+                .back-button:hover {{ background: #555; }}
+                .problem {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .example {{ background: #e8f4f8; padding: 10px; margin: 10px 0; border-left: 4px solid #2196F3; }}
+                code {{ background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }}
+                input {{ padding: 8px; margin: 5px; width: 300px; }}
+                button {{ padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }}
+                button:hover {{ background: #45a049; }}
+                .palindrome {{ color: #FF6B6B; font-weight: bold; }}
+                .string-display {{ font-family: monospace; font-size: 18px; padding: 15px; background: #f9f9f9; border-radius: 5px; margin: 15px 0; letter-spacing: 2px; }}
             </style>
         </head>
         <body>
@@ -125,102 +214,77 @@ def app1(request):
             </div>
             
             <h2>Try it yourself:</h2>
-            <div>
+            <form method="post" action="">
                 <label>Input string:</label><br>
-                <input type="text" id="inputString" value="babad" placeholder="Enter a string"><br>
-                <button onclick="solveLongestPalindrome()">Solve</button>
-            </div>
+                <input type="text" name="input_string" value="{input_val}" placeholder="Enter a string"><br>
+                <button type="submit">Solve</button>
+            </form>
             
-            <div id="result"></div>
-            
-            <script>
-                function expandAroundCenter(s, left, right) {
-                    while (left >= 0 && right < s.length && s[left] === s[right]) {
-                        left--;
-                        right++;
-                    }
-                    return right - left - 1;
-                }
-                
-                function solveLongestPalindrome() {
-                    const s = document.getElementById('inputString').value;
-                    
-                    if (!s || s.length === 0) {
-                        document.getElementById('result').innerHTML = 
-                            '<strong>Error:</strong> Please enter a non-empty string.';
-                        document.getElementById('result').style.display = 'block';
-                        document.getElementById('result').className = 'success';
-                        return;
-                    }
-                    
-                    let start = 0;
-                    let maxLen = 1;
-                    
-                    // Algorithm: Expand Around Centers (O(n²) time, O(1) space)
-                    for (let i = 0; i < s.length; i++) {
-                        // Check for odd-length palindromes (center at i)
-                        const len1 = expandAroundCenter(s, i, i);
-                        // Check for even-length palindromes (center between i and i+1)
-                        const len2 = expandAroundCenter(s, i, i + 1);
-                        
-                        const len = Math.max(len1, len2);
-                        
-                        if (len > maxLen) {
-                            maxLen = len;
-                            start = i - Math.floor((len - 1) / 2);
-                        }
-                    }
-                    
-                    const longestPalindrome = s.substring(start, start + maxLen);
-                    
-                    // Create visual representation highlighting the palindrome
-                    let visualString = s.split('').map((char, idx) => {
-                        if (idx >= start && idx < start + maxLen) {
-                            return '<span class="palindrome">' + char + '</span>';
-                        }
-                        return char;
-                    }).join('');
-                    
-                    document.getElementById('result').innerHTML = 
-                        '<strong>Result:</strong> "' + longestPalindrome + '"<br>' +
-                        '<strong>Length:</strong> ' + maxLen + '<br>' +
-                        '<strong>Input:</strong> "' + s + '"<br>' +
-                        '<div class="string-display">' + visualString + '</div>' +
-                        '<strong>Algorithm:</strong> Expand around centers (O(n²) time, O(1) space)';
-                    document.getElementById('result').style.display = 'block';
-                    document.getElementById('result').className = 'success';
-                }
-                
-                // Auto-solve on load with default example
-                window.onload = function() {
-                    solveLongestPalindrome();
-                };
-            </script>
+            {result_html}
         </body>
         </html>
     """
     return HttpResponse(html)
 
 
+def _app2_state_table(state: list[float]) -> str:
+    """Build HTML table for quantum state display."""
+    states = ["|00⟩", "|01⟩", "|10⟩", "|11⟩"]
+    rows = []
+    for i in range(4):
+        amp = state[i]
+        prob = f"{abs(amp * amp):.3f}"
+        amp_str = f"{amp:.3f}"
+        rows.append(f"<tr><td>{states[i]}</td><td>{amp_str}</td><td>{prob}</td></tr>")
+    return "<table border=\"1\" style=\"border-collapse: collapse; width: 100%;\"><tr><th>State</th><th>Amplitude</th><th>Probability</th></tr>" + "".join(rows) + "</table>"
+
+
+def _app2_hidden_state_inputs(state: list[float]) -> str:
+    """Build hidden inputs for form state."""
+    return "".join(f'<input type="hidden" name="s{i}" value="{state[i]}">' for i in range(4))
+
+
+@csrf_exempt
 def app2(request):
-    """Application 2: Basic Quantum Gates Simulator."""
-    html = """
+    """Application 2: Basic Quantum Gates Simulator. Logic runs in Python (server-side)."""
+    state = [1.0, 0.0, 0.0, 0.0]
+    initial_sel = "00"
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        if action == "reset":
+            initial_sel = request.POST.get("initial_state", "00")
+            state = _quantum_reset(initial_sel)
+        else:
+            try:
+                state = [float(request.POST.get(f"s{i}", 0)) for i in range(4)]
+            except (ValueError, TypeError):
+                state = [1.0, 0.0, 0.0, 0.0]
+            if action in ("PauliX", "PauliY", "PauliZ", "Hadamard", "CNOT"):
+                state = _quantum_apply_gate(state, action)
+    hidden = _app2_hidden_state_inputs(state)
+    state_table = _app2_state_table(state)
+    sel_00 = ' selected' if initial_sel == '00' else ''
+    sel_01 = ' selected' if initial_sel == '01' else ''
+    sel_10 = ' selected' if initial_sel == '10' else ''
+    sel_11 = ' selected' if initial_sel == '11' else ''
+    sel_plus = ' selected' if initial_sel == 'plus' else ''
+    html = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>Basic Quantum Gates Simulator</title>
             <style>
-                body { font-family: Arial, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; }
-                .back-button { padding: 8px 15px; background: #666; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-bottom: 20px; }
-                .back-button:hover { background: #555; }
-                .gate-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
-                .gate-button { padding: 10px 15px; margin: 5px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; }
-                .gate-button:hover { background: #1976D2; }
-                .result { margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 5px; }
-                table { border-collapse: collapse; width: 100%; margin: 20px 0; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-                th { background-color: #4CAF50; color: white; }
-                .matrix { font-family: monospace; }
+                body {{ font-family: Arial, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; }}
+                .back-button {{ padding: 8px 15px; background: #666; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-bottom: 20px; }}
+                .back-button:hover {{ background: #555; }}
+                .gate-info {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .gate-button {{ padding: 10px 15px; margin: 5px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; }}
+                .gate-button:hover {{ background: #1976D2; }}
+                .result {{ margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 5px; }}
+                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
+                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: center; }}
+                th {{ background-color: #4CAF50; color: white; }}
+                .matrix {{ font-family: monospace; }}
             </style>
         </head>
         <body>
@@ -241,164 +305,140 @@ def app2(request):
             
             <div class="gate-info">
                 <h2>Quantum Gates</h2>
-                <p>This simulator demonstrates basic single-qubit and two-qubit quantum gates.</p>
+                <p>This simulator demonstrates basic single-qubit and two-qubit quantum gates. (Computed in Python)</p>
                 
                 <h3>Single-Qubit Gates (operate on first qubit):</h3>
-                <button class="gate-button" onclick="applyGate('PauliX')">Pauli-X (Bit Flip)</button>
-                <button class="gate-button" onclick="applyGate('PauliY')">Pauli-Y</button>
-                <button class="gate-button" onclick="applyGate('PauliZ')">Pauli-Z (Phase Flip)</button>
-                <button class="gate-button" onclick="applyGate('Hadamard')">Hadamard (H)</button>
+                <form method="post" style="display:inline;">{hidden}<input type="hidden" name="action" value="PauliX"><button type="submit" class="gate-button">Pauli-X (Bit Flip)</button></form>
+                <form method="post" style="display:inline;">{hidden}<input type="hidden" name="action" value="PauliY"><button type="submit" class="gate-button">Pauli-Y</button></form>
+                <form method="post" style="display:inline;">{hidden}<input type="hidden" name="action" value="PauliZ"><button type="submit" class="gate-button">Pauli-Z (Phase Flip)</button></form>
+                <form method="post" style="display:inline;">{hidden}<input type="hidden" name="action" value="Hadamard"><button type="submit" class="gate-button">Hadamard (H)</button></form>
                 
                 <h3>Two-Qubit Gates:</h3>
-                <button class="gate-button" onclick="applyGate('CNOT')">CNOT (Controlled-NOT)</button>
+                <form method="post" style="display:inline;">{hidden}<input type="hidden" name="action" value="CNOT"><button type="submit" class="gate-button">CNOT (Controlled-NOT)</button></form>
             </div>
             
-            <div>
+            <form method="post">
+                <input type="hidden" name="action" value="reset">
                 <h3>Initial State:</h3>
-                <select id="initialState">
-                    <option value="00">|00⟩</option>
-                    <option value="01">|01⟩</option>
-                    <option value="10">|10⟩</option>
-                    <option value="11">|11⟩</option>
-                    <option value="plus">|+⟩ (Hadamard on |0⟩)</option>
+                <select name="initial_state">
+                    <option value="00"{sel_00}>|00⟩</option>
+                    <option value="01"{sel_01}>|01⟩</option>
+                    <option value="10"{sel_10}>|10⟩</option>
+                    <option value="11"{sel_11}>|11⟩</option>
+                    <option value="plus"{sel_plus}>|+⟩ (Hadamard on |0⟩)</option>
                 </select>
-                <button class="gate-button" onclick="resetState()">Reset State</button>
-            </div>
+                <button type="submit" class="gate-button">Reset State</button>
+            </form>
             
             <div id="result" class="result">
                 <h3>Current State:</h3>
-                <div id="stateDisplay"></div>
+                <div id="stateDisplay">{state_table}</div>
             </div>
-            
-            <script>
-                // Quantum state representation: [amplitude_00, amplitude_01, amplitude_10, amplitude_11]
-                let currentState = [1, 0, 0, 0]; // |00⟩
-                
-                // Gate matrices (in computational basis) - Note: PauliY uses imaginary numbers which are simplified in this visualization
-                const gates = {
-                    'PauliX': [[0, 1], [1, 0]],  // X gate
-                    'PauliY': [[0, -1], [1, 0]],  // Y gate (simplified - full version requires complex numbers)
-                    'PauliZ': [[1, 0], [0, -1]],  // Z gate
-                    'Hadamard': [[1/Math.SQRT2, 1/Math.SQRT2], [1/Math.SQRT2, -1/Math.SQRT2]]
-                };
-                
-                function resetState() {
-                    const select = document.getElementById('initialState').value;
-                    switch(select) {
-                        case '00': currentState = [1, 0, 0, 0]; break;
-                        case '01': currentState = [0, 1, 0, 0]; break;
-                        case '10': currentState = [0, 0, 1, 0]; break;
-                        case '11': currentState = [0, 0, 0, 1]; break;
-                        case 'plus': currentState = [1 / Math.SQRT2, 0, 1 / Math.SQRT2, 0]; break;
-                    }
-                    updateDisplay();
-                }
-                
-                function applyGate(gateName) {
-                    if (gateName === 'CNOT') {
-                        // CNOT flips target qubit if control is |1⟩
-                        // |00⟩ -> |00⟩, |01⟩ -> |01⟩, |10⟩ -> |11⟩, |11⟩ -> |10⟩
-                        const newState = [...currentState];
-                        currentState[0] = newState[0]; // |00⟩ unchanged
-                        currentState[1] = newState[1]; // |01⟩ unchanged
-                        currentState[2] = newState[3]; // |10⟩ -> |11⟩
-                        currentState[3] = newState[2]; // |11⟩ -> |10⟩
-                    } else if (gateName === 'Hadamard') {
-                        // Apply Hadamard to first qubit (simplified)
-                        const h = 1 / Math.SQRT2;
-                        const newState = [
-                            h * (currentState[0] + currentState[2]),
-                            h * (currentState[1] + currentState[3]),
-                            h * (currentState[0] - currentState[2]),
-                            h * (currentState[1] - currentState[3])
-                        ];
-                        currentState = newState;
-                    } else if (gateName === 'PauliX') {
-                        // X gate flips |0⟩ and |1⟩ on first qubit
-                        // |00⟩ <-> |10⟩, |01⟩ <-> |11⟩
-                        const newState = [currentState[2], currentState[3], currentState[0], currentState[1]];
-                        currentState = newState;
-                    } else if (gateName === 'PauliY') {
-                        // Y gate: X followed by Z (with imaginary component handled as sign changes)
-                        // For visualization, we apply -iXZ which gives: |0⟩ -> i|1⟩, |1⟩ -> -i|0⟩
-                        // Simplified to: swap and negate appropriately
-                        const newState = [-currentState[3], -currentState[2], currentState[1], currentState[0]];
-                        currentState = newState;
-                    } else if (gateName === 'PauliZ') {
-                        // Z gate applies phase flip to |1⟩ on first qubit
-                        // |0⟩ unchanged, |1⟩ -> -|1⟩
-                        currentState[2] = -currentState[2];
-                        currentState[3] = -currentState[3];
-                    }
-                    updateDisplay();
-                }
-                
-                function updateDisplay() {
-                    const stateDisplayEl = document.getElementById('stateDisplay');
-                    if (!stateDisplayEl) {
-                        console.error('stateDisplay element not found');
-                        return;
-                    }
-                    
-                    const states = ['|00⟩', '|01⟩', '|10⟩', '|11⟩'];
-                    let display = '<table border="1" style="border-collapse: collapse; width: 100%;"><tr><th>State</th><th>Amplitude</th><th>Probability</th></tr>';
-                    
-                    for (let i = 0; i < 4; i++) {
-                        const amp = currentState[i];
-                        const prob = Math.abs(amp * amp).toFixed(3);
-                        const ampStr = amp.toFixed(3);
-                        display += `<tr><td>${states[i]}</td><td>${ampStr}</td><td>${prob}</td></tr>`;
-                    }
-                    display += '</table>';
-                    
-                    stateDisplayEl.innerHTML = display;
-                    const resultEl = document.getElementById('result');
-                    if (resultEl) {
-                        resultEl.style.display = 'block';
-                    }
-                }
-                
-                // Initialize display when page loads - use multiple methods to ensure it works
-                window.addEventListener('load', function() {
-                    setTimeout(updateDisplay, 100);
-                });
-                
-                // Also try immediately if DOM is ready
-                if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    setTimeout(updateDisplay, 100);
-                } else {
-                    document.addEventListener('DOMContentLoaded', function() {
-                        setTimeout(updateDisplay, 100);
-                    });
-                }
-            </script>
         </body>
         </html>
     """
     return HttpResponse(html)
 
 
+def _fib_naive(n: int) -> int | None:
+    """Naive recursive Fibonacci. Returns None if too slow (n > 35)."""
+    if n > 35:
+        return None
+    if n <= 1:
+        return n
+    return _fib_naive(n - 1) + _fib_naive(n - 2)
+
+
+def _fib_dp(n: int, memo: dict | None = None) -> int:
+    """Fibonacci with memoization (top-down DP)."""
+    if memo is None:
+        memo = {}
+    if n in memo:
+        return memo[n]
+    if n <= 1:
+        memo[n] = n
+        return n
+    memo[n] = _fib_dp(n - 1, memo) + _fib_dp(n - 2, memo)
+    return memo[n]
+
+
+def _fib_tabulation(n: int) -> int:
+    """Fibonacci with tabulation (bottom-up DP)."""
+    if n <= 1:
+        return n
+    dp = [0, 1]
+    for i in range(2, n + 1):
+        dp.append(dp[i - 1] + dp[i - 2])
+    return dp[n]
+
+
+@csrf_exempt
 def app3(request):
-    """Application 3: Dynamic Programming Example (Fibonacci with memoization)."""
-    html = """
+    """Application 3: Dynamic Programming Example (Fibonacci). Logic runs in Python (server-side)."""
+    n_val = 10
+    result_html = ""
+    if request.method == "POST":
+        try:
+            n_val = int(request.POST.get("fib_n", 10))
+            n_val = max(0, min(45, n_val))
+        except (ValueError, TypeError):
+            n_val = 10
+        start_dp = time.perf_counter()
+        result_dp = _fib_dp(n_val)
+        time_dp = f"{(time.perf_counter() - start_dp) * 1000:.4f}"
+        start_tab = time.perf_counter()
+        result_tab = _fib_tabulation(n_val)
+        time_tab = f"{(time.perf_counter() - start_tab) * 1000:.4f}"
+        result_naive = _fib_naive(n_val)
+        if result_naive is not None:
+            start_naive = time.perf_counter()
+            _ = _fib_naive(n_val)
+            time_naive = f"{(time.perf_counter() - start_naive) * 1000:.4f}"
+            result_naive_str = str(result_naive)
+        else:
+            time_naive = "N/A"
+            result_naive_str = "N/A (n>35, too slow)"
+        result_html = f"""
+            <p><strong>F({n_val}) = {result_dp}</strong></p>
+            <table border="1" style="border-collapse: collapse; width: 100%;">
+                <tr><th>Method</th><th>Result</th><th>Time (ms)</th></tr>
+                <tr><td>Dynamic Programming (Memoization)</td><td>{result_dp}</td><td>{time_dp}</td></tr>
+                <tr><td>Tabulation (Bottom-up)</td><td>{result_tab}</td><td>{time_tab}</td></tr>
+                <tr><td>Naive Recursive (n>35 skipped)</td><td>{result_naive_str}</td><td>{time_naive}</td></tr>
+            </table>
+            <p><small>Note: Naive recursive skipped for n>35. Computed in Python.</small></p>
+        """
+    else:
+        result_dp = _fib_dp(10)
+        result_html = f"""
+            <p><strong>F(10) = {result_dp}</strong></p>
+            <table border="1" style="border-collapse: collapse; width: 100%;">
+                <tr><th>Method</th><th>Result</th><th>Time (ms)</th></tr>
+                <tr><td>Dynamic Programming (Memoization)</td><td>{result_dp}</td><td>—</td></tr>
+                <tr><td>Tabulation (Bottom-up)</td><td>{result_dp}</td><td>—</td></tr>
+                <tr><td>Naive Recursive</td><td>{result_dp}</td><td>—</td></tr>
+            </table>
+            <p><small>Submit to compute timing. Computed in Python.</small></p>
+        """
+    html = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>Dynamic Programming Example</title>
             <style>
-                body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-                .back-button { padding: 8px 15px; background: #666; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-bottom: 20px; }
-                .back-button:hover { background: #555; }
-                .info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
-                .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
-                .method { padding: 15px; border: 2px solid #ddd; border-radius: 5px; }
-                .recursive { border-color: #f44336; }
-                .dp { border-color: #4CAF50; }
-                input { padding: 8px; margin: 5px; width: 100px; }
-                button { padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; }
-                button:hover { background: #1976D2; }
-                .result { margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 5px; }
-                code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }}
+                .back-button {{ padding: 8px 15px; background: #666; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-bottom: 20px; }}
+                .back-button:hover {{ background: #555; }}
+                .info {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .comparison {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }}
+                .method {{ padding: 15px; border: 2px solid #ddd; border-radius: 5px; }}
+                .recursive {{ border-color: #f44336; }}
+                .dp {{ border-color: #4CAF50; }}
+                input {{ padding: 8px; margin: 5px; width: 100px; }}
+                button {{ padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; }}
+                button:hover {{ background: #1976D2; }}
+                .result {{ margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 5px; }}
+                code {{ background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }}
             </style>
         </head>
         <body>
@@ -427,16 +467,16 @@ def app3(request):
                 </div>
             </div>
             
-            <div>
+            <form method="post">
                 <h2>Calculate Fibonacci Number:</h2>
                 <label>Enter n (0-45 recommended):</label><br>
-                <input type="number" id="fibInput" value="10" min="0" max="45"><br>
-                <button onclick="calculateFibonacci()">Calculate</button>
-            </div>
+                <input type="number" name="fib_n" value="{n_val}" min="0" max="45"><br>
+                <button type="submit">Calculate</button>
+            </form>
             
-            <div id="result" class="result" style="display:none;">
+            <div id="result" class="result">
                 <h3>Results:</h3>
-                <div id="resultsDisplay"></div>
+                <div id="resultsDisplay">{result_html}</div>
             </div>
             
             <div class="info">
@@ -445,120 +485,6 @@ def app3(request):
                 <p>F(n) = F(n-1) + F(n-2) for n > 1</p>
                 <p><strong>Example:</strong> 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, ...</p>
             </div>
-            
-            <script>
-                // Memoization cache
-                const memo = {};
-                
-                // Naive recursive (exponential time)
-                function fibNaive(n) {
-                    if (n <= 1) return n;
-                    return fibNaive(n - 1) + fibNaive(n - 2);
-                }
-                
-                // Dynamic Programming with memoization (linear time)
-                function fibDP(n) {
-                    if (n in memo) return memo[n];
-                    if (n <= 1) {
-                        memo[n] = n;
-                        return n;
-                    }
-                    memo[n] = fibDP(n - 1) + fibDP(n - 2);
-                    return memo[n];
-                }
-                
-                // Tabulation (bottom-up approach)
-                function fibTabulation(n) {
-                    if (n <= 1) return n;
-                    const dp = [0, 1];
-                    for (let i = 2; i <= n; i++) {
-                        dp[i] = dp[i - 1] + dp[i - 2];
-                    }
-                    return dp[n];
-                }
-                
-                function calculateFibonacci() {
-                    const n = parseInt(document.getElementById('fibInput').value);
-                    
-                    if (n < 0 || n > 45) {
-                        alert('Please enter a number between 0 and 45');
-                        return;
-                    }
-                    
-                    // Clear memo for fresh calculation
-                    Object.keys(memo).forEach(key => delete memo[key]);
-                    
-                    // Measure time for DP approach
-                    const startDP = performance.now();
-                    const resultDP = fibDP(n);
-                    const timeDP = (performance.now() - startDP).toFixed(4);
-                    
-                    // Measure time for tabulation
-                    const startTab = performance.now();
-                    const resultTab = fibTabulation(n);
-                    const timeTab = (performance.now() - startTab).toFixed(4);
-                    
-                    // Try naive approach with 10 second timeout
-                    let resultNaive = 'N/A (timeout or too slow)';
-                    let timeNaive = 'N/A';
-                    
-                    // Use Promise with timeout for naive recursive
-                    const naivePromise = new Promise((resolve) => {
-                        const startNaive = performance.now();
-                        try {
-                            const result = fibNaive(n);
-                            const elapsed = performance.now() - startNaive;
-                            resolve({ result, elapsed });
-                        } catch (e) {
-                            resolve({ result: null, elapsed: null });
-                        }
-                    });
-                    
-                    // Wait up to 10 seconds (10000ms)
-                    Promise.race([
-                        naivePromise,
-                        new Promise(resolve => setTimeout(() => resolve({ result: null, elapsed: null }), 10000))
-                    ]).then(({ result, elapsed }) => {
-                        if (result !== null && elapsed !== null) {
-                            resultNaive = result;
-                            timeNaive = elapsed.toFixed(4);
-                        }
-                        
-                        const display = `
-                            <p><strong>F(${n}) = ${resultDP}</strong></p>
-                            <table border="1" style="border-collapse: collapse; width: 100%;">
-                                <tr>
-                                    <th>Method</th>
-                                    <th>Result</th>
-                                    <th>Time (ms)</th>
-                                </tr>
-                                <tr>
-                                    <td>Dynamic Programming (Memoization)</td>
-                                    <td>${resultDP}</td>
-                                    <td>${timeDP}</td>
-                                </tr>
-                                <tr>
-                                    <td>Tabulation (Bottom-up)</td>
-                                    <td>${resultTab}</td>
-                                    <td>${timeTab}</td>
-                                </tr>
-                                <tr>
-                                    <td>Naive Recursive (10s timeout)</td>
-                                    <td>${resultNaive}</td>
-                                    <td>${timeNaive}</td>
-                                </tr>
-                            </table>
-                            <p><small>Note: Naive recursive approach has a 10-second timeout limit.</small></p>
-                        `;
-                        
-                        document.getElementById('resultsDisplay').innerHTML = display;
-                        document.getElementById('result').style.display = 'block';
-                    });
-                }
-                
-                // Calculate on load
-                calculateFibonacci();
-            </script>
         </body>
         </html>
     """
