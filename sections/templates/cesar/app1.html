@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Schmidt Rank Calculator</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        h1 { color: #667eea; text-align: center; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+        .nav { text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #eee; }
+        .nav a { color: #667eea; text-decoration: none; font-weight: bold; }
+        .nav a:hover { text-decoration: underline; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box; }
+        textarea { resize: vertical; font-family: monospace; }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; width: 100%; font-weight: bold; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .result { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 20px; border-left: 5px solid #667eea; }
+        .error { background: #fee; color: #c33; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #c33; }
+        .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .result-card { background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .result-card h3 { margin: 0 0 10px 0; font-size: 32px; color: #667eea; }
+        .result-card p { margin: 0; color: #666; font-size: 14px; }
+        .badge { display: inline-block; padding: 5px 15px; border-radius: 20px; color: white; font-weight: bold; font-size: 14px; }
+        .badge-entangled { background: #ef4444; }
+        .badge-product { background: #10b981; }
+        .coefficients { margin-top: 15px; }
+        .coeff-bar { background: #eee; height: 30px; border-radius: 5px; margin: 5px 0; overflow: hidden; position: relative; }
+        .coeff-fill { background: linear-gradient(90deg, #667eea, #764ba2); height: 100%; transition: width 0.3s; }
+        .coeff-label { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: white; font-weight: bold; font-size: 12px; }
+        .radio-group { display: flex; gap: 20px; margin-bottom: 15px; }
+        .radio-group label { display: flex; align-items: center; font-weight: normal; }
+        .radio-group input { width: auto; margin-right: 5px; }
+        .input-section { display: none; }
+        .input-section.active { display: block; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table th, table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        table th { background: #f8f9fa; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="/cesar/">← Back to Cesar's Section</a>
+        </div>
+        
+        <h1>🔬 Schmidt Rank Calculator</h1>
+        <p class="subtitle">Calculate Schmidt rank and decomposition of bipartite quantum states</p>
+        
+        {% if error %}
+            <div class="error">❌ Error: {{ error }}</div>
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label>Input Method:</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="input_method" value="manual" checked onchange="toggleInputMethod()">
+                        Manual Input
+                    </label>
+                    <label>
+                        <input type="radio" name="input_method" value="predefined" onchange="toggleInputMethod()">
+                        Predefined State
+                    </label>
+                </div>
+            </div>
+            
+            <div id="manual-input" class="input-section active">
+                <div class="form-group">
+                    <label>State Vector:</label>
+                    <textarea name="state_vector" rows="3" placeholder="Enter state vector, e.g.: 0.707, 0, 0, 0.707">0.707, 0, 0, 0.707</textarea>
+                    <small>Supports comma or space separated values. Example Bell state: 0.707, 0, 0, 0.707</small>
+                </div>
+                <div class="form-group">
+                    <label>Dimension of Subsystem A:</label>
+                    <input type="number" name="dim_a" value="2" min="2" max="10">
+                </div>
+                <div class="form-group">
+                    <label>Dimension of Subsystem B:</label>
+                    <input type="number" name="dim_b" value="2" min="2" max="10">
+                </div>
+            </div>
+            
+            <div id="predefined-input" class="input-section">
+                <div class="form-group">
+                    <label>Select Predefined State:</label>
+                    <select name="predefined_state">
+                        {% for key, info in predefined_states.items %}
+                            <option value="{{ key }}">{{ info.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <button type="submit">🔬 Calculate Schmidt Rank</button>
+        </form>
+        
+        {% if result %}
+        <div class="result">
+            <h2>✅ Calculation Results</h2>
+            
+            <div class="result-grid">
+                <div class="result-card">
+                    <h3>{{ result.schmidt_rank }}</h3>
+                    <p>Schmidt Rank</p>
+                </div>
+                <div class="result-card">
+                    <h3>
+                        {% if result.is_entangled %}
+                            <span class="badge badge-entangled">Entangled</span>
+                        {% else %}
+                            <span class="badge badge-product">Product State</span>
+                        {% endif %}
+                    </h3>
+                    <p>Entanglement Status</p>
+                </div>
+                <div class="result-card">
+                    <h3>{{ result.entropy|floatformat:4 }}</h3>
+                    <p>Von Neumann Entropy</p>
+                </div>
+            </div>
+            
+            <div class="coefficients">
+                <h3>Schmidt Coefficients:</h3>
+                {% for coeff in result.coefficients %}
+                    {% if coeff.value > 0.0000000001 %}
+                    <div class="coeff-bar">
+                        <div class="coeff-fill" style="width: {{ coeff.width_percent }}%"></div>
+                        <div class="coeff-label">λ{{ forloop.counter }} = {{ coeff.value|floatformat:6 }}</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            <table>
+                <tr><th>Property</th><th>Value</th></tr>
+                <tr><td>Dimensions</td><td>{{ result.dim_a }} × {{ result.dim_b }}</td></tr>
+                <tr><td>Schmidt Rank</td><td>{{ result.schmidt_rank }}</td></tr>
+                <tr><td>Entangled?</td><td>{% if result.is_entangled %}Yes ❌{% else %}No ✅{% endif %}</td></tr>
+                <tr><td>Entropy</td><td>{{ result.entropy|floatformat:6 }}</td></tr>
+                <tr><td>State Vector</td><td><code>{{ result.state_vector }}</code></td></tr>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        function toggleInputMethod() {
+            const manual = document.getElementById('manual-input');
+            const predefined = document.getElementById('predefined-input');
+            const selectedMethod = document.querySelector('input[name="input_method"]:checked').value;
+            
+            if (selectedMethod === 'manual') {
+                manual.classList.add('active');
+                predefined.classList.remove('active');
+            } else {
+                manual.classList.remove('active');
+                predefined.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

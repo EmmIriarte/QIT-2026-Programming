@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Study Planner Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; color: #374151; }
+        .dashboard-container { max-width: 1000px; margin: 0 auto; }
+        .nav { margin-bottom: 20px; }
+        .nav a { color: #3b82f6; text-decoration: none; font-weight: 600; }
+        .nav a:hover { text-decoration: underline; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header h1 { margin: 0; color: #111827; }
+        .gpa-badge { background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; font-size: 1.2rem; font-weight: bold; }
+        
+        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        
+        .card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
+        .card h2 { margin-top: 0; border-bottom: 2px solid #f3f4f6; padding-bottom: 10px; color: #1f2937; font-size: 1.2rem; }
+        
+        /* Progress Bar Styles */
+        .progress-section { margin-bottom: 20px; }
+        .progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 600; }
+        .progress-bar-bg { background: #e5e7eb; border-radius: 9999px; height: 12px; width: 100%; overflow: hidden; }
+        .progress-bar-fill { height: 100%; border-radius: 9999px; transition: width 0.5s ease; }
+        
+        /* Lists */
+        .item-list { list-style: none; padding: 0; margin: 0; }
+        .item-list li { padding: 12px 0; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; }
+        .item-list li:last-child { border-bottom: none; }
+        .course-code { background: #eff6ff; color: #3b82f6; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; margin-right: 10px; }
+        
+        .due-date { font-size: 0.85rem; color: #ef4444; font-weight: 600; }
+        .empty-state { text-align: center; color: #9ca3af; font-style: italic; padding: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="nav">
+            <a href="/cesar/">← Back to Cesar's Section</a>
+        </div>
+        
+        <div class="header">
+            <h1>📚 Study Planner Dashboard</h1>
+            <div class="gpa-badge">
+                GPA: {% if gpa %}{{ gpa }}{% else %}N/A{% endif %}
+            </div>
+        </div>
+
+        {% if not user_exists %}
+            <div class="card" style="border-left: 5px solid #ef4444;">
+                <h2>⚠️ Action Required</h2>
+                <p>No users found in the database. Please run <code>python manage.py createsuperuser</code> in your terminal first!</p>
+            </div>
+        {% else %}
+            
+            <div class="grid">
+                <div>
+                    <div class="card">
+                        <h2>My Programs Progress</h2>
+                        {% for data in programs_data %}
+                            <div class="progress-section">
+                                <div class="progress-header">
+                                    <span>{{ data.program.name }}</span>
+                                    <span>{{ data.earned_ects }} / {{ data.program.total_ects_required }} ECTS</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill" style="width: {{ data.progress }}%; background-color: {{ data.program.color }};"></div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="empty-state">No active programs. Enroll in a course first!</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="card">
+                        <h2>Current Enrollments</h2>
+                        <ul class="item-list">
+                            {% for enrollment in enrollments %}
+                                <li>
+                                    <div>
+                                        <span class="course-code">{{ enrollment.course.code }}</span>
+                                        {{ enrollment.course.name }}
+                                    </div>
+                                    <span style="color: #6b7280; font-size: 0.9rem;">{{ enrollment.semester_year }}</span>
+                                </li>
+                            {% empty %}
+                                <li class="empty-state">You are not enrolled in any courses right now.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card">
+                        <h2>📅 Upcoming Assignments</h2>
+                        <ul class="item-list">
+                            {% for assignment in upcoming_assignments %}
+                                <li style="flex-direction: column; align-items: flex-start;">
+                                    <div style="margin-bottom: 5px;">
+                                        <strong>{{ assignment.title }}</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                                        <span class="course-code" style="margin: 0;">{{ assignment.course.code }}</span>
+                                        <span class="due-date">{{ assignment.due_date|timeuntil }} left</span>
+                                    </div>
+                                </li>
+                            {% empty %}
+                                <li class="empty-state">No upcoming assignments! 🎉</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        {% endif %}
+    </div>
+</body>
+</html>
